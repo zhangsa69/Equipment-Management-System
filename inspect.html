@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>设备检查工作台</title>
+    <!-- Offline Assets -->
+    <script src="/static/js/tailwind.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1d4ed8',   // 蓝色，适合按钮
+                        success: '#15803d',   // 绿色，正常状态
+                        danger: '#b91c1c',    // 红色，异常状态
+                        warning: '#b45309',   // 橙色，警告状态
+                        darkBg: '#0f172a',    // 深色背景，高对比度
+                        cardBg: '#1e293b',    // 卡片背景
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 自定义高对比度基础样式 */
+        body {
+            background-color: #0f172a;
+            /* 默认暗色高对比度环境，适应现场光线不足 */
+            color: #f8fafc;
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* 隐藏原生的复选框，使用自定义开关 */
+        /* 默认未勾选 = 异常状态（红色） */
+        .toggle-label {
+            background-color: #b91c1c;
+        }
+
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #15803d;
+        }
+
+        .toggle-checkbox:checked+.toggle-label {
+            background-color: #15803d;
+        }
+
+        /* 状态文字样式 */
+        .status-text-abnormal {
+            color: #f87171;
+            font-weight: 700;
+        }
+
+        .status-text-normal {
+            color: #4ade80;
+            font-weight: 700;
+        }
+
+        /* 页面加载骨架屏动画 */
+        .skeleton {
+            background: linear-gradient(-45deg, #1e293b, #334155, #1e293b, #334155);
+            background-size: 400% 400%;
+            animation: skeleton-loading 1.2s ease infinite;
+        }
+
+        @keyframes skeleton-loading {
+            0% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0 50%;
+            }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex justify-center bg-darkBg pb-24">
+
+    <!-- 主容器：手机全屏，PC 端居中窄卡片 -->
+    <div
+        class="w-full max-w-lg bg-cardBg shadow-2xl flex flex-col min-h-screen sm:min-h-0 sm:mt-6 sm:rounded-2xl sm:overflow-hidden sm:h-fit relative">
+
+        <!-- 顶部导航栏 -->
+        <header class="bg-slate-800 p-5 flex items-center justify-between border-b border-slate-700 top-0 sticky z-10">
+            <h1 class="text-xl font-bold tracking-wider">现场协同作业 (v2.0)</h1>
+            <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+        </header>
+
+        <!-- 加载状态展示 -->
+        <div id="loadingState" class="p-6 space-y-6">
+            <div class="h-8 skeleton rounded w-2/3"></div>
+            <div class="h-4 skeleton rounded w-1/2"></div>
+            <div class="h-24 skeleton rounded mt-6"></div>
+        </div>
+
+        <!-- 错误状态展示 -->
+        <div id="errorState" class="hidden p-6 text-center mt-10">
+            <svg class="w-16 h-16 text-danger mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <h2 class="text-2xl font-bold text-red-500 mb-2">获取设备失败</h2>
+            <p id="errorMessage" class="text-slate-400 text-lg">无法加载设备信息，请检查网络或二维码是否有效。</p>
+            <button onclick="fetchDeviceData()"
+                class="mt-8 px-6 py-3 bg-slate-700 rounded-lg font-bold text-white hover:bg-slate-600">重试</button>
+        </div>
+
+        <!-- 设备内容展示区 -->
+        <div id="contentState" class="hidden flex-1 flex flex-col">
+
+            <!-- 模块1：设备头部信息 -->
+            <div class="p-6 border-b border-slate-700 bg-slate-800">
+                <div class="flex justify-between items-start mb-2">
+                    <h2 id="deviceName" class="text-3xl font-extrabold text-white leading-tight">加载中...</h2>
+                    <span id="deviceStatus"
+                        class="px-3 py-1 text-sm font-bold rounded-full bg-slate-700 text-slate-300 border border-slate-600">
+                        --
+                    </span>
+                </div>
+                <div class="flex items-center text-slate-400 mt-3 text-lg">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z">
+                        </path>
+                    </svg>
+                    <span>编号: <span id="deviceSn"
+                            class="font-mono font-bold text-slate-300 tracking-wide">--</span></span>
+                </div>
+            </div>
+
+            <!-- 业务切换选项卡 -->
+            <div class="flex bg-slate-800 px-4 pt-4 border-b border-slate-700">
+                <button onclick="switchTab('inspection')" id="tabInspection"
+                    class="flex-1 py-3 text-lg font-bold border-b-4 border-primary text-primary transition-all">
+                    日常检查
+                </button>
+                <button onclick="switchTab('maintenance')" id="tabMaintenance"
+                    class="flex-1 py-3 text-lg font-bold border-b-4 border-transparent text-slate-500 transition-all">
+                    计划维护
+                </button>
+            </div>
+
+            <!-- 检查操作表单 -->
+            <form id="inspectionForm" class="p-6 pb-64 flex-1 space-y-6">
+                <div id="templateSelection" class="hidden mb-6 bg-slate-800 p-4 rounded-xl border border-slate-600">
+                    <label class="block text-xl font-bold text-primary mb-3">📌 本次要执行的检查计划</label>
+                    <div class="relative">
+                        <select id="selectedTemplate" onchange="renderChecklistByTemplate()"
+                            class="w-full bg-slate-900 text-white text-lg p-4 rounded-xl border border-slate-600 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all appearance-none cursor-pointer pr-10 shadow-inner">
+                            <option value="">-- 请选择检查计划 --</option>
+                        </select>
+                        <div
+                            class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 class="text-xl font-bold text-slate-300 border-l-4 border-primary pl-3 mb-6">检查项目</h3>
+                <div id="dynamicCheckItems" class="space-y-4"></div>
+            </form>
+
+            <!-- 维护操作表单 -->
+            <form id="maintenanceForm" class="hidden p-6 pb-64 flex-1 space-y-6">
+                <div id="mPlanSelection" class="mb-6 bg-slate-800 p-4 rounded-xl border border-slate-600">
+                    <label class="block text-xl font-bold text-emerald-500 mb-3">🛠️ 本次要执行的维护计划</label>
+                    <div class="relative">
+                        <select id="selectedMPlan" onchange="renderMChecklistByPlan()"
+                            class="w-full bg-slate-900 text-white text-lg p-4 rounded-xl border border-slate-600 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all appearance-none cursor-pointer pr-10 shadow-inner">
+                            <option value="">-- 请选择维护计划 --</option>
+                        </select>
+                        <div
+                            class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 class="text-xl font-bold text-slate-300 border-l-4 border-emerald-500 pl-3 mb-6">维护项目</h3>
+                <div id="dynamicMItems" class="space-y-4"></div>
+            </form>
+
+            <!-- 底部提交按钮区域 -->
+            <div
+                class="fixed bottom-0 left-0 right-0 sm:absolute sm:bottom-0 p-4 bg-slate-800 border-t border-slate-700 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.3)] z-50">
+                <button id="btnSubmitInspection" type="button" onclick="submitInspection()"
+                    class="w-full bg-primary hover:bg-blue-600 active:bg-blue-800 text-white font-bold text-2xl py-5 rounded-xl transition-colors shadow-lg flex justify-center items-center">
+                    <svg class="w-7 h-7 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    确认检查 提交
+                </button>
+
+                <button id="btnSubmitMaintenance" type="button" onclick="submitMaintenance()"
+                    class="hidden w-full bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-2xl py-5 rounded-xl transition-colors shadow-lg flex justify-center items-center">
+                    <svg class="w-7 h-7 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    维护完毕 提交
+                </button>
+
+                <button type="button" onclick="goToRepair()"
+                    class="w-full mt-4 bg-danger hover:bg-red-600 active:bg-red-800 text-white font-bold text-2xl py-5 rounded-xl transition-colors shadow-lg flex justify-center items-center">
+                    <svg class="w-7 h-7 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                        </path>
+                    </svg>
+                    设备异常 报修
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = window.location.origin;
+
+        const elLoading = document.getElementById('loadingState');
+        const elError = document.getElementById('errorState');
+        const elContent = document.getElementById('contentState');
+
+        const elDeviceName = document.getElementById('deviceName');
+        const elDeviceSn = document.getElementById('deviceSn');
+        const elDeviceStatus = document.getElementById('deviceStatus');
+        const elErrorMsg = document.getElementById('errorMessage');
+
+        let currentTab = 'inspection';
+
+        function getDeviceIdFromUrl() {
+            const pathParts = window.location.pathname.split('/').filter(p => p);
+            const inspectIndex = pathParts.indexOf('inspect');
+            if (inspectIndex !== -1 && inspectIndex < pathParts.length - 1) return pathParts[inspectIndex + 1];
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('id');
+        }
+
+        async function fetchDeviceData() {
+            const deviceId = getDeviceIdFromUrl();
+            if (!deviceId) { showError("无效的设备链接：未找到设备 ID。"); return; }
+            elError.classList.add('hidden');
+            elContent.classList.add('hidden');
+            elLoading.classList.remove('hidden');
+            try {
+                const response = await fetch(`${API_BASE_URL}/devices/${deviceId}`);
+                if (!response.ok) throw new Error(response.status === 404 ? `设备未找到` : `系统异常`);
+                const deviceData = await response.json();
+                renderDeviceData(deviceData);
+            } catch (error) { showError(error.message); }
+        }
+
+        function renderDeviceData(device) {
+            elDeviceName.textContent = device.name || '未知设备';
+            elDeviceSn.textContent = device.sn || '---';
+            elDeviceStatus.textContent = device.status;
+
+            // 样式逻辑
+            elDeviceStatus.className = "px-4 py-1.5 text-sm font-extrabold rounded-full border shadow-sm ";
+            if (device.status === '运行中') elDeviceStatus.className += "bg-success/20 text-green-400 border-green-500/50";
+            else if (device.status === '维护') elDeviceStatus.className += "bg-warning/20 text-orange-400 border-orange-500/50";
+            else elDeviceStatus.className += "bg-danger/20 text-red-400 border-red-500/50";
+
+            window.currentDeviceTemplates = device.templates || [];
+            window.currentDeviceMPlans = device.maintenance_plans || [];
+
+            // 渲染检查模板选择
+            const selectEl = document.getElementById('selectedTemplate');
+            const selectionDiv = document.getElementById('templateSelection');
+            if (window.currentDeviceTemplates.length > 0) {
+                selectionDiv.classList.remove('hidden');
+                selectEl.innerHTML = '<option value="">-- 请选择检查计划 --</option>';
+                window.currentDeviceTemplates.forEach(tpl => {
+                    selectEl.innerHTML += `<option value="${tpl.id}">${tpl.name}</option>`;
+                });
+                if (window.currentDeviceTemplates.length === 1) {
+                    selectEl.value = window.currentDeviceTemplates[0].id;
+                    renderChecklistByTemplateId(window.currentDeviceTemplates[0].id);
+                }
+            } else {
+                selectionDiv.classList.add('hidden');
+                document.getElementById('dynamicCheckItems').innerHTML = '<p class="text-center text-slate-500 py-4">该设备未绑定检查计划</p>';
+            }
+
+            // 渲染维护计划选择
+            const mSelectEl = document.getElementById('selectedMPlan');
+            const mPlans = window.currentDeviceMPlans;
+            mSelectEl.innerHTML = '<option value="">-- 请选择维护计划 --</option>';
+            if (mPlans.length > 0) {
+                mPlans.forEach(p => { mSelectEl.innerHTML += `<option value="${p.id}">${p.name}</option>`; });
+                if (mPlans.length === 1) {
+                    mSelectEl.value = mPlans[0].id;
+                    renderMChecklistByPlanId(mPlans[0].id);
+                }
+            } else {
+                document.getElementById('dynamicMItems').innerHTML = '<p class="text-center text-slate-500 py-4">该设备未绑定维护计划</p>';
+            }
+
+            elLoading.classList.add('hidden');
+            elContent.classList.remove('hidden');
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            const tabIns = document.getElementById('tabInspection');
+            const tabMaint = document.getElementById('tabMaintenance');
+            const formIns = document.getElementById('inspectionForm');
+            const formMaint = document.getElementById('maintenanceForm');
+            const btnIns = document.getElementById('btnSubmitInspection');
+            const btnMaint = document.getElementById('btnSubmitMaintenance');
+
+            if (tab === 'inspection') {
+                tabIns.className = "flex-1 py-3 text-lg font-bold border-b-4 border-primary text-primary transition-all";
+                tabMaint.className = "flex-1 py-3 text-lg font-bold border-b-4 border-transparent text-slate-500 transition-all";
+                formIns.classList.remove('hidden');
+                formMaint.classList.add('hidden');
+                btnIns.classList.remove('hidden');
+                btnMaint.classList.add('hidden');
+            } else {
+                tabMaint.className = "flex-1 py-3 text-lg font-bold border-b-4 border-emerald-500 text-emerald-500 transition-all";
+                tabIns.className = "flex-1 py-3 text-lg font-bold border-b-4 border-transparent text-slate-500 transition-all";
+                formMaint.classList.remove('hidden');
+                formIns.classList.add('hidden');
+                btnMaint.classList.remove('hidden');
+                btnIns.classList.add('hidden');
+            }
+        }
+
+        // --- 检查渲染与逻辑 ---
+        function renderChecklistByTemplate() {
+            const tplId = parseInt(document.getElementById('selectedTemplate').value);
+            if (!tplId) { document.getElementById('dynamicCheckItems').innerHTML = ''; return; }
+            renderChecklistByTemplateId(tplId);
+        }
+
+        function renderChecklistByTemplateId(tplId) {
+            const container = document.getElementById('dynamicCheckItems');
+            const targetTpl = window.currentDeviceTemplates.find(t => t.id === tplId);
+            container.innerHTML = '';
+            if (targetTpl && targetTpl.items) {
+                targetTpl.items.forEach((item, idx) => {
+                    container.insertAdjacentHTML('beforeend', generateItemHtml(item, idx, 'inspection'));
+                });
+            }
+        }
+
+        // --- 维护渲染与逻辑 ---
+        function renderMChecklistByPlan() {
+            const planId = parseInt(document.getElementById('selectedMPlan').value);
+            if (!planId) { document.getElementById('dynamicMItems').innerHTML = ''; return; }
+            renderMChecklistByPlanId(planId);
+        }
+
+        function renderMChecklistByPlanId(planId) {
+            const container = document.getElementById('dynamicMItems');
+            const targetPlan = window.currentDeviceMPlans.find(p => p.id === planId);
+            container.innerHTML = '';
+            if (targetPlan && targetPlan.items) {
+                targetPlan.items.forEach((item, idx) => {
+                    container.insertAdjacentHTML('beforeend', generateItemHtml(item, idx, 'maintenance'));
+                });
+            }
+        }
+
+        function generateItemHtml(item, idx, prefix) {
+            return `
+                <div class="flex items-center justify-between p-4 bg-slate-800 rounded-xl border border-red-500/50" id="${prefix}_card_${idx}">
+                    <div>
+                        <p class="text-xl font-bold text-white">${item}</p>
+                        <span id="${prefix}_status_${idx}" class="status-text-abnormal text-sm mt-1 inline-block">⚠ 异常</span>
+                    </div>
+                    <div class="relative inline-block w-14 mr-2 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" name="${prefix}_item_${idx}" value="${item}" id="${prefix}_toggle_${idx}" 
+                            class="${prefix}-check-item toggle-checkbox absolute block w-7 h-7 rounded-full bg-white border-4 border-red-500 appearance-none cursor-pointer transition-all duration-300 checked:right-0 checked:border-green-500 z-10" 
+                            onchange="updateItemStatus('${prefix}', ${idx})"/>
+                        <label for="${prefix}_toggle_${idx}" class="toggle-label block overflow-hidden h-7 rounded-full cursor-pointer transition-colors duration-300"></label>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateItemStatus(prefix, index) {
+            const cb = document.getElementById(`${prefix}_toggle_${index}`);
+            const status = document.getElementById(`${prefix}_status_${index}`);
+            const card = document.getElementById(`${prefix}_card_${index}`);
+            if (cb.checked) {
+                status.textContent = '✓ 正常';
+                status.className = 'status-text-normal text-sm mt-1 inline-block';
+                card.classList.replace('border-red-500/50', 'border-green-500/50');
+            } else {
+                status.textContent = '⚠ 异常';
+                status.className = 'status-text-abnormal text-sm mt-1 inline-block';
+                card.classList.replace('border-green-500/50', 'border-red-500/50');
+            }
+        }
+
+        async function submitInspection() {
+            const tplId = parseInt(document.getElementById('selectedTemplate').value);
+            if (!tplId) { alert("请先选择检查计划"); return; }
+            const checklist = Array.from(document.querySelectorAll('.inspection-check-item')).map(cb => ({
+                item_name: cb.value, is_normal: cb.checked
+            }));
+            const payload = { device_id: getDeviceIdFromUrl(), template_id: tplId, checklist };
+            await doSubmit(`${API_BASE_URL}/inspections/`, payload, 'btnSubmitInspection');
+        }
+
+        async function submitMaintenance() {
+            const planId = parseInt(document.getElementById('selectedMPlan').value);
+            if (!planId) { alert("请选择要完成的维护计划"); return; }
+            const checklist = Array.from(document.querySelectorAll('.maintenance-check-item')).map(cb => ({
+                item_name: cb.value, is_normal: cb.checked
+            }));
+            const payload = { device_id: getDeviceIdFromUrl(), plan_id: planId, checklist, operator: "现场维护员" };
+            await doSubmit(`${API_BASE_URL}/maintenance/records/`, payload, 'btnSubmitMaintenance');
+        }
+
+        async function doSubmit(url, payload, btnId) {
+            const btn = document.getElementById(btnId);
+            const original = btn.innerHTML;
+            btn.disabled = true;
+            btn.textContent = "正在提交...";
+            try {
+                const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!res.ok) throw new Error('提交失败');
+                btn.textContent = "提交成功!";
+                btn.className = "w-full bg-success text-white font-bold text-2xl py-5 rounded-xl";
+                setTimeout(() => { location.reload(); }, 1500);
+            } catch (err) {
+                alert(err.message);
+                btn.innerHTML = original;
+                btn.disabled = false;
+            }
+        }
+
+        function showError(msg) { elLoading.classList.add('hidden'); elContent.classList.add('hidden'); elErrorMsg.textContent = msg; elError.classList.remove('hidden'); }
+        function goToRepair() { window.location.href = `/repair/${getDeviceIdFromUrl()}`; }
+        window.addEventListener('DOMContentLoaded', fetchDeviceData);
+    </script>
+</body>
+
+</html>

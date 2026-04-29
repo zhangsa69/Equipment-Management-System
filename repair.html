@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设备报修 - 快速响应</title>
+    <!-- Offline Assets -->
+    <script src="/static/js/tailwind.min.js"></script>
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen py-8 px-4">
+    <div class="max-w-lg mx-auto bg-slate-800 rounded-3xl shadow-2xl overflow-hidden border border-slate-700">
+        <header class="bg-red-600 p-6 text-center">
+            <h1 class="text-2xl font-bold text-white tracking-widest">设备故障报修</h1>
+            <p class="text-red-100 text-sm mt-1">提交后将立刻通过钉钉直达维修人员</p>
+        </header>
+
+        <form id="repairForm" class="p-6 space-y-6">
+            <!-- 设备信息 (只读) -->
+            <div>
+                <label class="block text-slate-400 text-sm font-medium mb-1">设备名称</label>
+                <input type="text" id="deviceName" readonly
+                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white font-bold opacity-70">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-slate-400 text-sm font-medium mb-1">设备编号 (SN)</label>
+                    <input type="text" id="deviceSn" readonly
+                        class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-300 font-mono text-sm opacity-70">
+                </div>
+                <div>
+                    <label class="block text-slate-400 text-sm font-medium mb-1">维修班长</label>
+                    <input type="text" id="leaderName" readonly
+                        class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-amber-400 font-bold opacity-70">
+                    <input type="hidden" id="leaderId">
+                </div>
+            </div>
+
+            <hr class="border-slate-700">
+
+            <!-- 报修人选择 -->
+            <div class="relative">
+                <label class="block text-slate-300 text-lg font-bold mb-2">报修人员</label>
+                <input type="text" id="reporterSearch" autocomplete="off"
+                    class="w-full bg-slate-900 border border-slate-600 rounded-xl px-4 py-4 text-white text-lg focus:ring-2 focus:ring-red-500 outline-none"
+                    placeholder="输入姓名模糊搜索...">
+                <!-- 搜索结果列表 -->
+                <ul id="reporterList"
+                    class="hidden absolute top-full left-0 right-0 bg-slate-900 border border-slate-700 rounded-xl mt-1 z-50 max-h-48 overflow-y-auto shadow-2xl">
+                    <!-- 动态列表 -->
+                </ul>
+                <input type="hidden" id="reporterId" required>
+            </div>
+
+            <!-- 故障描述 -->
+            <div>
+                <label class="block text-slate-300 text-lg font-bold mb-2">故障描述</label>
+                <textarea id="description" required rows="4"
+                    class="w-full bg-slate-900 border border-slate-600 rounded-xl px-4 py-4 text-white text-lg focus:ring-2 focus:ring-red-500 outline-none placeholder-slate-600"
+                    placeholder="请详细描述故障现象..."></textarea>
+            </div>
+
+            <!-- 提交按钮 -->
+            <button type="submit" id="submitBtn"
+                class="w-full bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-black text-2xl py-6 rounded-2xl transition-all shadow-lg flex justify-center items-center">
+                🚀 提交报修通知
+            </button>
+
+            <button type="button" onclick="history.back()"
+                class="w-full text-slate-500 text-sm font-medium py-2">返回上一页</button>
+        </form>
+    </div>
+
+    <script>
+        const API_BASE_URL = window.location.origin;
+        const deviceId = window.location.pathname.split('/').pop();
+        let usersList = [];
+        const searchInput = document.getElementById('reporterSearch');
+        const searchList = document.getElementById('reporterList');
+        const hiddenIdInput = document.getElementById('reporterId');
+
+        // 1. 初始化拉取数据
+        async function init() {
+            try {
+                // 并行拉取设备详情和人员列表
+                const [devRes, userRes] = await Promise.all([
+                    fetch(`${API_BASE_URL}/devices/${deviceId}`),
+                    fetch(`${API_BASE_URL}/users/`)
+                ]);
+
+                if (devRes.ok) {
+                    const dev = await devRes.json();
+                    document.getElementById('deviceName').value = dev.name;
+                    document.getElementById('deviceSn').value = dev.sn;
+                    const leaderName = dev.maintenance_leader || "未指定班长";
+                    document.getElementById('leaderName').value = leaderName;
+
+                    if (userRes.ok) {
+                        usersList = await userRes.json();
+                        // 自动查找维修班长的 ID
+                        const leader = usersList.find(u => u.name === leaderName);
+                        if (leader) document.getElementById('leaderId').value = leader.id;
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+                alert("加载基础信息失败");
+            }
+        }
+
+        // 2. 搜索展示逻辑
+        searchInput.oninput = (e) => {
+            const kw = e.target.value.trim().toLowerCase();
+            if (!kw) { searchList.classList.add('hidden'); return; }
+
+            const matches = usersList.filter(u => u.name.toLowerCase().includes(kw));
+            if (matches.length > 0) {
+                searchList.innerHTML = matches.map(u => `<li onclick="selectUser('${u.id}', '${u.name}')" class="p-4 hover:bg-slate-700 border-b border-slate-700 cursor-pointer text-slate-200">
+                    <span class="font-bold">${u.name}</span>
+                    <span class="block text-xs text-slate-500">${u.id}</span>
+                </li>`).join('');
+                searchList.classList.remove('hidden');
+            } else {
+                searchList.classList.add('hidden');
+            }
+        };
+
+        function selectUser(id, name) {
+            hiddenIdInput.value = id;
+            searchInput.value = name;
+            searchList.classList.add('hidden');
+        }
+
+        // 点击外部隐藏
+        document.onclick = (e) => {
+            if (e.target !== searchInput) searchList.classList.add('hidden');
+        };
+
+        document.getElementById('repairForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            const leaderId = document.getElementById('leaderId').value;
+            const reporterId = document.getElementById('reporterId').value;
+            const description = document.getElementById('description').value;
+
+            if (!reporterId) { alert("请搜索并选择一名正确的报修人！"); return; }
+            if (!leaderId) { alert("未识别到有效的维修班长，请检查。"); return; }
+
+            btn.disabled = true;
+            btn.textContent = "发送中...";
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/repair/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        device_id: deviceId,
+                        reporter_id: reporterId,
+                        leader_id: leaderId,
+                        description: description
+                    })
+                });
+
+                if (res.ok) {
+                    const result = await res.json();
+                    alert("✅ 报修成功！已实时通知维修班长协助派单。");
+                    window.location.href = `/inspect/${deviceId}`;
+                } else {
+                    alert("提交失败，请重试");
+                    btn.disabled = false;
+                    btn.textContent = "🚀 提交报修通知";
+                }
+            } catch (err) {
+                alert("网络异常");
+                btn.disabled = false;
+            }
+        };
+
+        window.onload = init;
+    </script>
+</body>
+
+</html>

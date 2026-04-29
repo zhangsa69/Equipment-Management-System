@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>京车设备管理系统 | 重塑工业资产管理</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* 引入更接近苹果的字体栈 */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --apple-bg: #000000;
+            --apple-card: #111111;
+            --apple-border: rgba(255, 255, 255, 0.08);
+            --apple-text: #f5f5f7;
+            --apple-gray: #86868b;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--apple-bg);
+            color: var(--apple-text);
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        /* 更细腻的滚动渐显动效 */
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px) scale(0.98);
+            transition: all 1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        /* 文字渐变 */
+        .text-gradient {
+            background: linear-gradient(135deg, #fff 0%, #86868b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .text-gradient-blue {
+            background: linear-gradient(135deg, #5ac8fa 0%, #007aff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .text-gradient-purple {
+            background: linear-gradient(135deg, #c850c0 0%, #4158d0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* 苹果风格卡片 (Bento Box) */
+        .bento-card {
+            background-color: var(--apple-card);
+            border: 1px solid var(--apple-border);
+            border-radius: 2rem;
+            overflow: hidden;
+            position: relative;
+            transition: transform 0.3s ease, background-color 0.3s ease;
+        }
+
+        .bento-card:hover {
+            transform: scale(1.01);
+            background-color: #161616;
+        }
+
+        /* 抽象 UI 动画 */
+        .scanner-line {
+            width: 100%;
+            height: 2px;
+            background: #007aff;
+            box-shadow: 0 0 10px #007aff;
+            position: absolute;
+            top: 0;
+            animation: scan 2s infinite linear alternate;
+        }
+
+        @keyframes scan {
+            0% {
+                top: 10%;
+                opacity: 0;
+            }
+
+            10% {
+                opacity: 1;
+            }
+
+            90% {
+                opacity: 1;
+            }
+
+            100% {
+                top: 90%;
+                opacity: 0;
+            }
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #34c759;
+            border-radius: 50%;
+            box-shadow: 0 0 0 0 rgba(52, 199, 89, 0.7);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(52, 199, 89, 0.7);
+            }
+
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 10px rgba(52, 199, 89, 0);
+            }
+
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(52, 199, 89, 0);
+            }
+        }
+
+        /* 架构图：数据流向动画 */
+        .data-flow-x {
+            position: absolute;
+            height: 2px;
+            width: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 122, 255, 0.8), transparent);
+            background-size: 200% 100%;
+            animation: flowX 2s linear infinite;
+        }
+
+        @keyframes flowX {
+            0% {
+                background-position: 100% 0;
+            }
+
+            100% {
+                background-position: -100% 0;
+            }
+        }
+
+        .spin-slow {
+            animation: spin 8s linear infinite;
+        }
+
+        /* 脉冲呼吸灯动效 */
+        @keyframes pulse-glow {
+
+            0%,
+            100% {
+                opacity: 0.6;
+                filter: brightness(1);
+            }
+
+            50% {
+                opacity: 1;
+                filter: brightness(1.5) drop-shadow(0 0 10px rgba(0, 122, 255, 0.5));
+            }
+        }
+
+        .animate-pulse-glow {
+            animation: pulse-glow 3s ease-in-out infinite;
+        }
+
+        /* 无限滚动二维码墙动效 */
+        @keyframes scroll-x {
+            0% {
+                transform: translateX(0) rotate(-12deg);
+            }
+
+            100% {
+                transform: translateX(-50%) rotate(-12deg);
+            }
+        }
+
+        .animate-scroll-qr {
+            display: flex;
+            width: 200%;
+            animation: scroll-x 20s linear infinite;
+        }
+
+        /* 隐藏滚动条 */
+        ::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+    </style>
+</head>
+
+<body class="antialiased selection:bg-blue-500 selection:text-white">
+
+    <!-- 极简导航栏 -->
+    <nav class="fixed w-full z-50 bg-black/70 backdrop-blur-md border-b border-white/5">
+        <div
+            class="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between text-xs font-medium text-gray-400 tracking-wide">
+            <span class="text-white flex items-center gap-2"><i data-lucide="cpu" class="w-4 h-4"></i> 河北京车设备管理</span>
+            <div class="hidden md:flex space-x-10">
+                <a href="#vision" class="hover:text-white transition-colors">设计愿景</a>
+                <a href="#features" class="hover:text-white transition-colors">核心特性</a>
+                <a href="#workflow" class="hover:text-white transition-colors">闭环流程</a>
+                <a href="#architecture" class="hover:text-white transition-colors">系统中枢</a>
+                <a href="#dispatch" class="hover:text-white transition-colors">精益调度</a>
+                <a href="#performance" class="hover:text-white transition-colors">卓越成效</a>
+                <a href="#tech" class="hover:text-white transition-colors">底层架构</a>
+            </div>
+            <span>v1.0</span>
+        </div>
+    </nav>
+
+    <!-- 1. 首屏视差 (Hero Section) -->
+    <section id="vision" class="relative min-h-screen flex flex-col items-center justify-center pt-20 overflow-hidden">
+        <div
+            class="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-blue-600/20 blur-[120px] rounded-[100%] pointer-events-none">
+        </div>
+
+        <div class="relative z-10 text-center px-4 max-w-4xl mx-auto flex flex-col items-center">
+            <div class="reveal">
+                <h2 class="text-sm md:text-base font-semibold text-blue-500 tracking-[0.2em] uppercase mb-6">京车设备管理系统
+                </h2>
+                <h1
+                    class="text-5xl md:text-7xl lg:text-[5rem] font-bold tracking-tight leading-[1.1] mb-8 text-gradient">
+                    重塑标准。<br>掌控全生命周期。
+                </h1>
+                <p class="text-xl md:text-2xl text-gray-400 max-w-2xl mx-auto font-light leading-relaxed mb-16">
+                    将传统的纸质记录与碎片化管理，转化为清晰可见的数字资产。在企业数字化的浪潮中，让每一次设备维护都精准无误。
+                </p>
+            </div>
+
+            <div class="reveal" style="transition-delay: 200ms;">
+                <p class="text-xs text-gray-500 tracking-widest uppercase mb-4">向下滚动探索</p>
+                <div class="w-px h-16 bg-gradient-to-b from-gray-500 to-transparent mx-auto"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 2. Bento Box 核心功能展区 -->
+    <section id="features" class="py-32 px-6 max-w-7xl mx-auto">
+        <div class="text-center mb-20 reveal">
+            <h2 class="text-4xl md:text-5xl font-bold tracking-tight mb-4 text-gradient">化繁为简的艺术。</h2>
+            <p class="text-xl text-gray-400 font-light">强大的底层逻辑，隐藏在极简的操作界面之下。</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[28rem]">
+            <!-- 卡片 1: 一机一码 -->
+            <div class="bento-card md:col-span-2 p-10 flex flex-col justify-between reveal">
+                <div class="relative z-10">
+                    <h3 class="text-3xl font-bold mb-3 text-white">一机一码，瞬时交互。</h3>
+                    <p class="text-gray-400 text-lg max-w-md">
+                        为每台设备生成专属数字身份。移动端扫码直达档案，现场查看维护历史、执行检查，真正实现无纸化作业。
+                    </p>
+                </div>
+                <div
+                    class="absolute right-10 bottom-10 w-48 h-48 border border-white/10 rounded-2xl flex items-center justify-center bg-black overflow-hidden group">
+                    <i data-lucide="qr-code"
+                        class="w-24 h-24 text-gray-600 group-hover:text-white transition-colors duration-500"></i>
+                    <div class="scanner-line"></div>
+                </div>
+            </div>
+
+            <!-- 卡片 2: 智能提醒 -->
+            <div class="bento-card p-10 flex flex-col justify-between reveal" style="transition-delay: 100ms;">
+                <div>
+                    <h3 class="text-2xl font-bold mb-3 text-white">智能排程<br>告别遗漏</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">
+                        底层算法自动计算检查与维护到期时间。在关键节点，系统将自动下发提醒，确保计划 100% 履约。
+                    </p>
+                </div>
+                <div class="space-y-3 mt-8">
+                    <div class="h-2 w-full bg-white/10 rounded-full overflow-hidden">
+                        <div class="h-full bg-blue-500 w-3/4 rounded-full"></div>
+                    </div>
+                    <div class="h-2 w-full bg-white/10 rounded-full overflow-hidden">
+                        <div class="h-full bg-purple-500 w-1/2 rounded-full"></div>
+                    </div>
+                    <div class="h-2 w-full bg-white/10 rounded-full overflow-hidden">
+                        <div class="h-full bg-orange-500 w-5/6 rounded-full"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 卡片 3: 钉钉集成 (新增动画层) -->
+            <div class="bento-card p-10 flex flex-col justify-between reveal group overflow-hidden">
+                <div class="relative z-10">
+                    <i data-lucide="message-square"
+                        class="w-10 h-10 text-blue-500 mb-6 group-hover:scale-110 transition-transform duration-500"></i>
+                    <h3 class="text-2xl font-bold mb-3 text-white">深度融合钉钉生态。</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">
+                        组织架构自动同步，工单派发、逾期警告通过钉钉机器人第一时间触达负责人。
+                    </p>
+                </div>
+                <!-- 抽象通知层级 UI 动画 -->
+                <div class="relative h-20 mt-6 pointer-events-none">
+                    <!-- 顶层主消息卡片 -->
+                    <div
+                        class="absolute right-0 top-0 w-[90%] bg-white/[0.03] border border-white/10 rounded-2xl p-3 flex items-center gap-3 backdrop-blur-md transform translate-x-4 opacity-40 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-500 z-10">
+                        <div
+                            class="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-500/30 shrink-0">
+                            <i data-lucide="bell" class="w-4 h-4 text-blue-400"></i>
+                        </div>
+                        <div class="flex-1 space-y-2">
+                            <div class="h-2 w-1/3 bg-white/20 rounded-full"></div>
+                            <div class="h-2 w-3/4 bg-white/10 rounded-full"></div>
+                        </div>
+                        <!-- 通知红点，加个脉冲效果 -->
+                        <div
+                            class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-[#111] animate-pulse">
+                        </div>
+                    </div>
+                    <!-- 底层阴影卡片 (制造层叠感) -->
+                    <div
+                        class="absolute right-0 top-4 w-[80%] h-14 bg-white/[0.01] border border-white/5 rounded-2xl transform translate-x-8 opacity-20 group-hover:translate-x-2 group-hover:opacity-60 transition-all duration-500 delay-75 z-0">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 卡片 4: 实时状态 -->
+            <div class="bento-card md:col-span-2 p-10 flex flex-col justify-between reveal"
+                style="transition-delay: 100ms;">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="text-3xl font-bold mb-3 text-white">设备状态，全局洞察。</h3>
+                        <p class="text-gray-400 text-lg max-w-sm">
+                            基于海量检查记录与维修数据，自动推演设备健康度。系统日志模块记录每一次操作，追溯有据可查。
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-3 bg-black/50 px-4 py-2 rounded-full border border-white/10">
+                        <div class="pulse-dot"></div>
+                        <span class="text-sm font-medium text-green-400">系统运行正常</span>
+                    </div>
+                </div>
+                <div class="h-32 mt-8 flex items-end gap-2 px-4 opacity-50">
+                    <div class="flex-1 bg-white/20 rounded-t-sm h-[40%]"></div>
+                    <div class="flex-1 bg-white/20 rounded-t-sm h-[60%]"></div>
+                    <div class="flex-1 bg-blue-500/50 rounded-t-sm h-[90%]"></div>
+                    <div class="flex-1 bg-white/20 rounded-t-sm h-[50%]"></div>
+                    <div class="flex-1 bg-white/20 rounded-t-sm h-[70%]"></div>
+                    <div class="flex-1 bg-white/20 rounded-t-sm h-[30%]"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. Sticky 黏性滚动区 (讲述工单流程) -->
+    <section id="workflow" class="relative">
+        <div class="max-w-7xl mx-auto px-6 py-20">
+            <div class="flex flex-col md:flex-row gap-20">
+                <div class="md:w-1/3 md:sticky md:top-32 h-fit mb-12 md:mb-0 reveal">
+                    <h2 class="text-4xl md:text-5xl font-bold leading-tight mb-6 text-gradient-purple">
+                        让故障处理，<br>像流水一样顺畅。
+                    </h2>
+                    <p class="text-gray-400 text-lg font-light mb-8">
+                        完整的报修工单模块，从发现异常到验收完工，状态实时流转，权责清晰分明。
+                    </p>
+                    <div class="w-12 h-1 bg-purple-600 rounded-full"></div>
+                </div>
+
+                <div class="md:w-2/3 space-y-32 pb-32">
+                    <div class="reveal relative pl-8 border-l border-white/10">
+                        <div
+                            class="absolute w-4 h-4 bg-black border-2 border-purple-500 rounded-full -left-[9px] top-1">
+                        </div>
+                        <h4 class="text-2xl font-bold mb-4 text-white">01. 发起报修</h4>
+                        <p class="text-gray-400 leading-relaxed text-lg mb-6">
+                            现场人员扫码，快速填写异常描述并上传凭证。系统立即生成带有唯一编号的维修工单，并推送给维修班长。</p>
+                        <div class="p-6 bg-white/[0.02] border border-white/5 rounded-2xl">
+                            <div class="flex justify-between text-sm text-gray-500 mb-2"><span>设备: 空压机
+                                    A区</span><span>状态: 待派单</span></div>
+                            <div class="h-2 bg-white/10 rounded-full">
+                                <div class="h-full bg-red-500 w-1/4 rounded-full"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="reveal relative pl-8 border-l border-white/10">
+                        <div class="absolute w-4 h-4 bg-black border-2 border-blue-500 rounded-full -left-[9px] top-1">
+                        </div>
+                        <h4 class="text-2xl font-bold mb-4 text-white">02. 智能派单</h4>
+                        <p class="text-gray-400 leading-relaxed text-lg mb-6">班长通过系统进行资源调度，将工单精准派发给相应的维修工程师。工程师在钉钉端一键接单。
+                        </p>
+                        <div class="p-6 bg-white/[0.02] border border-white/5 rounded-2xl">
+                            <div class="flex items-center gap-4 text-gray-300">
+                                <i data-lucide="user-check" class="w-6 h-6 text-blue-500"></i>
+                                <span>已派发至: 李工 (电气维护组)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="reveal relative pl-8 border-l border-white/10 border-transparent">
+                        <div class="absolute w-4 h-4 bg-black border-2 border-green-500 rounded-full -left-[9px] top-1">
+                        </div>
+                        <h4 class="text-2xl font-bold mb-4 text-white">03. 执行与完工</h4>
+                        <p class="text-gray-400 leading-relaxed text-lg mb-6">维修完成，系统记录耗时与处理方案，标记工单为“已完成”。设备状态自动恢复，闭环达成。
+                        </p>
+                        <div class="p-6 bg-white/[0.02] border border-white/5 rounded-2xl">
+                            <div class="flex justify-between text-sm text-gray-500 mb-2"><span>进度</span><span
+                                    class="text-green-500">100%</span></div>
+                            <div class="h-2 bg-white/10 rounded-full">
+                                <div class="h-full bg-green-500 w-full rounded-full"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. 新增：抽象系统架构流转图 (根据上传图片深度定制) -->
+    <section id="architecture" class="py-32 relative overflow-hidden bg-[#050505] border-t border-white/5">
+        <!-- 装饰背景 -->
+        <div
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] bg-gradient-to-r from-blue-900/10 via-purple-900/10 to-blue-900/10 blur-[80px] rounded-full pointer-events-none">
+        </div>
+
+        <div class="max-w-7xl mx-auto px-6 relative z-10">
+            <div class="text-center mb-24 reveal">
+                <h2 class="text-3xl md:text-5xl font-bold tracking-tight mb-6 text-white">业务中枢，精密运转。</h2>
+                <p class="text-lg text-gray-400 font-light max-w-2xl mx-auto">
+                    摒弃混乱的传统逻辑。我们将“设备-任务-人员”的关系进行动态解耦，通过强大的事件引擎与钉钉生态，实现毫秒级的数据流转。
+                </p>
+            </div>
+
+            <!-- 架构流转 Pipeline 容器 -->
+            <div class="flex flex-col lg:flex-row items-stretch justify-between gap-6 reveal"
+                style="transition-delay: 100ms;">
+
+                <!-- 模块一：挂载层 (设备组 & 任务绑定) -->
+                <div class="flex-1 bento-card p-8 flex flex-col">
+                    <div class="flex items-center gap-3 mb-8 pb-4 border-b border-white/10">
+                        <i data-lucide="layers" class="text-blue-400"></i>
+                        <h3 class="text-xl font-bold text-white">动态挂载层</h3>
+                    </div>
+                    <!-- 模拟设备与任务的 N:N 绑定关系 -->
+                    <div class="space-y-4 flex-1">
+                        <div class="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
+                            <span class="text-gray-300 text-sm font-medium">设备组 01</span>
+                            <div class="flex gap-2">
+                                <span class="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded">任务 A</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
+                            <span class="text-gray-300 text-sm font-medium">设备组 02</span>
+                            <div class="flex gap-2">
+                                <span class="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded">任务 B</span>
+                                <span class="px-2 py-1 bg-orange-500/20 text-orange-400 text-xs rounded">任务 C</span>
+                            </div>
+                        </div>
+                        <div
+                            class="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5 opacity-50">
+                            <span class="text-gray-300 text-sm font-medium">设备组 03</span>
+                            <div class="flex gap-2">
+                                <span class="px-2 py-1 text-gray-400 text-xs rounded">多重挂载...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 数据流连接器 (桌面端显示) -->
+                <div class="hidden lg:flex flex-col items-center justify-center relative w-16">
+                    <div class="w-full h-px bg-white/10 relative overflow-hidden">
+                        <div class="data-flow-x"></div>
+                    </div>
+                    <i data-lucide="chevron-right" class="text-blue-500/50 absolute"></i>
+                </div>
+
+                <!-- 模块二：调度核心 (苹果芯片级美学重构) -->
+                <div
+                    class="flex-[1.2] bento-card p-8 flex flex-col relative overflow-hidden group border-white/10 hover:border-blue-500/30">
+                    <!-- 动态环境光晕 (Ambient Glow) -->
+                    <div
+                        class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-blue-500/10 blur-[60px] rounded-full group-hover:bg-blue-500/20 group-hover:scale-110 transition-all duration-700 pointer-events-none">
+                    </div>
+
+                    <!-- 标题区 -->
+                    <div class="relative z-10 flex flex-col items-center mb-6">
+                        <div class="flex items-center gap-2 mb-1">
+                            <i data-lucide="cpu" class="w-5 h-5 text-blue-400"></i>
+                            <h3 class="text-xl font-bold text-white tracking-wide">事件调度核心</h3>
+                        </div>
+                        <span class="text-[10px] text-gray-500 uppercase tracking-widest font-medium">Central Dispatch
+                            Engine</span>
+                    </div>
+
+                    <!-- 核心视觉区：芯片流转结构 -->
+                    <div class="relative z-10 flex-1 flex flex-col items-center justify-between py-2">
+                        <!-- 上：数据库节点 (毛玻璃药丸) -->
+                        <div
+                            class="flex items-center gap-2 px-4 py-1.5 bg-black/40 backdrop-blur-md border border-white/10 rounded-full shadow-[0_0_15px_rgba(0,122,255,0.1)] z-20">
+                            <i data-lucide="database" class="w-3.5 h-3.5 text-blue-300"></i>
+                            <span class="text-blue-200 text-xs font-medium">底层数据持久层</span>
+                        </div>
+
+                        <!-- 中：发光核心引擎 -->
+                        <div class="relative w-36 h-36 flex items-center justify-center my-4">
+                            <!-- 外圈轨道 -->
+                            <div class="absolute inset-0 border border-white/[0.03] rounded-full spin-slow"></div>
+                            <!-- 中圈虚线轨道 (反向旋转) -->
+                            <div class="absolute inset-3 border border-dashed border-blue-500/30 rounded-full spin-slow"
+                                style="animation-direction: reverse; animation-duration: 12s;"></div>
+                            <!-- 内圈实线 -->
+                            <div class="absolute inset-7 border border-blue-500/10 rounded-full"></div>
+
+                            <!-- 中心处理晶体 -->
+                            <div
+                                class="absolute inset-10 bg-gradient-to-br from-gray-800 to-black border border-white/20 rounded-2xl shadow-[0_0_20px_rgba(0,122,255,0.2)] flex flex-col items-center justify-center transform group-hover:scale-105 transition-transform duration-500">
+                                <i data-lucide="zap" class="w-5 h-5 text-blue-400 mb-1"></i>
+                                <div class="text-[10px] font-bold text-white tracking-wider">主动轮询</div>
+                            </div>
+                        </div>
+
+                        <!-- 下：日志节点 (毛玻璃药丸) -->
+                        <div
+                            class="flex items-center gap-2 px-4 py-1.5 bg-black/40 backdrop-blur-md border border-white/10 rounded-full z-20">
+                            <i data-lucide="file-clock" class="w-3.5 h-3.5 text-gray-400"></i>
+                            <span class="text-gray-400 text-xs">触发操作日志生成</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 数据流连接器 (桌面端显示) -->
+                <div class="hidden lg:flex flex-col items-center justify-center relative w-16">
+                    <div class="w-full h-px bg-white/10 relative overflow-hidden">
+                        <div class="data-flow-x" style="animation-delay: 1s;"></div>
+                    </div>
+                    <i data-lucide="chevron-right" class="text-purple-500/50 absolute"></i>
+                </div>
+
+                <!-- 模块三：执行层 (钉钉分发与人员) -->
+                <div class="flex-1 bento-card p-8 flex flex-col relative">
+                    <div class="flex items-center justify-between mb-8 pb-4 border-b border-white/10">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="smartphone" class="text-purple-400"></i>
+                            <h3 class="text-xl font-bold text-white">分发与执行层</h3>
+                        </div>
+                        <span
+                            class="text-[10px] uppercase tracking-wider text-purple-400/70 border border-purple-400/30 px-2 py-1 rounded">DingTalk
+                            API</span>
+                    </div>
+
+                    <!-- 人员角色路由分支 -->
+                    <div class="flex flex-col gap-4 mt-2">
+                        <!-- 负责人路线 -->
+                        <div class="flex items-center justify-between pl-4 border-l-2 border-green-500/30 relative">
+                            <div
+                                class="absolute w-2 h-2 rounded-full bg-green-500 -left-[5px] top-1/2 -translate-y-1/2">
+                            </div>
+                            <div class="text-sm text-gray-300">检查任务提醒</div>
+                            <div class="flex items-center gap-2 text-xs text-gray-500 bg-white/5 px-2 py-1 rounded">
+                                <i data-lucide="user" class="w-3 h-3"></i> 负责人
+                            </div>
+                        </div>
+                        <!-- 班长路线 -->
+                        <div class="flex items-center justify-between pl-4 border-l-2 border-orange-500/30 relative">
+                            <div
+                                class="absolute w-2 h-2 rounded-full bg-orange-500 -left-[5px] top-1/2 -translate-y-1/2">
+                            </div>
+                            <div class="text-sm text-gray-300">报修派单流转</div>
+                            <div class="flex items-center gap-2 text-xs text-gray-500 bg-white/5 px-2 py-1 rounded">
+                                <i data-lucide="users" class="w-3 h-3"></i> 维修班长
+                            </div>
+                        </div>
+                        <!-- 维修工路线 -->
+                        <div class="flex items-center justify-between pl-4 border-l-2 border-blue-500/30 relative">
+                            <div class="absolute w-2 h-2 rounded-full bg-blue-500 -left-[5px] top-1/2 -translate-y-1/2">
+                            </div>
+                            <div class="text-sm text-gray-300">接单与闭环验收</div>
+                            <div class="flex items-center gap-2 text-xs text-gray-500 bg-white/5 px-2 py-1 rounded">
+                                <i data-lucide="wrench" class="w-3 h-3"></i> 维修工
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- 4.1 新增：精益调度逻辑 (Apple 风格深度展示：推送、逾期、节流) -->
+    <section id="dispatch" class="py-32 bg-black relative">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex flex-col md:flex-row items-end justify-between mb-20 reveal">
+                <div class="max-w-xl">
+                    <h2 class="text-sm font-semibold text-blue-500 tracking-[0.3em] uppercase mb-4">Scheduling
+                        Intelligence</h2>
+                    <h3 class="text-4xl md:text-6xl font-bold tracking-tight text-white mb-6">
+                        精益调度。<br>分秒必争。
+                    </h3>
+                </div>
+                <p class="text-xl text-gray-500 font-light max-w-sm mb-2">
+                    不是简单的定时提醒，而是基于设备状态与响应饱和度的智能决策逻辑。
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-6 reveal" style="transition-delay: 200ms;">
+
+                <!-- 计划独立推送 (4格) -->
+                <div class="md:col-span-4 bento-card p-10 flex flex-col justify-between group">
+                    <div>
+                        <div
+                            class="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-8 border border-blue-500/20">
+                            <i data-lucide="clock" class="w-6 h-6 text-blue-400"></i>
+                        </div>
+                        <h4 class="text-2xl font-bold text-white mb-4">计划独立推送</h4>
+                        <p class="text-gray-500 text-sm leading-relaxed">
+                            通过 APScheduler 维护每一项计划的独立时间线。无论设备绑定多少个任务，系统都能在精确的 <span class="text-white">Push Time</span>
+                            瞬间触发对应的事件。
+                        </p>
+                    </div>
+                    <!-- 模拟时间轴动画 -->
+                    <div class="relative h-1 w-full bg-white/5 mt-12 rounded-full overflow-hidden">
+                        <div
+                            class="absolute top-0 left-0 h-full bg-blue-500 w-1/3 group-hover:w-2/3 transition-all duration-[2s] ease-in-out">
+                        </div>
+                        <div
+                            class="absolute top-0 left-[33%] w-2 h-2 bg-white rounded-full -translate-y-1/4 shadow-[0_0_8px_#fff]">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 节流算法模块 (5格) -->
+                <div class="md:col-span-5 bento-card p-10 flex flex-col group relative">
+                    <!-- 抽象节流阀视觉 -->
+                    <div class="absolute right-0 top-0 w-32 h-32 bg-purple-500/5 blur-[40px] pointer-events-none"></div>
+
+                    <div class="relative z-10">
+                        <div
+                            class="w-12 h-12 bg-purple-500/10 rounded-2xl flex items-center justify-center mb-8 border border-purple-500/20">
+                            <i data-lucide="filter" class="w-6 h-6 text-purple-400"></i>
+                        </div>
+                        <h4 class="text-2xl font-bold text-white mb-4">智能防扰节流</h4>
+                        <p class="text-gray-500 text-sm leading-relaxed max-w-sm">
+                            独创的 <span class="text-white">Throttling</span> 算法。系统根据 (设备+任务+用户) 判定唯一标识，在 23
+                            小时内仅允许单次预警，有效防止通知轰炸，确保每一条提醒都极具价值。
+                        </p>
+                    </div>
+
+                    <div class="mt-auto pt-8 flex items-center justify-center">
+                        <div class="flex items-center gap-1">
+                            <div class="w-2 h-6 bg-purple-500/20 rounded-full"></div>
+                            <div class="w-2 h-10 bg-purple-500/40 rounded-full"></div>
+                            <div class="w-2 h-16 bg-purple-500 rounded-full animate-pulse"></div>
+                            <div class="w-2 h-10 bg-purple-500/40 rounded-full"></div>
+                            <div class="w-2 h-6 bg-purple-500/20 rounded-full"></div>
+                        </div>
+                        <div class="mx-6 text-gray-700 font-mono text-xs tracking-widest">COOLING DOWN</div>
+                    </div>
+                </div>
+
+                <!-- 逾期逻辑确定性 (3格) -->
+                <div
+                    class="md:col-span-3 bento-card p-10 flex flex-col justify-between border-blue-500/10 hover:border-blue-500/30 transition-colors">
+                    <div>
+                        <div
+                            class="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-8 border border-emerald-500/20">
+                            <i data-lucide="alert-circle" class="w-6 h-6 text-emerald-400"></i>
+                        </div>
+                        <h4 class="text-2xl font-bold text-white mb-4">确定性逾期</h4>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="p-3 bg-white/[0.03] rounded-xl border border-white/5 flex items-center gap-3">
+                            <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500"></i>
+                            <div class="flex-1">
+                                <div class="h-1.5 w-16 bg-white/20 rounded-full mb-1"></div>
+                                <div class="h-1 w-full bg-white/5 rounded-full"></div>
+                            </div>
+                        </div>
+                        <div class="p-3 bg-white/[0.03] rounded-xl border border-red-500/20 flex items-center gap-3">
+                            <i data-lucide="x-circle" class="w-4 h-4 text-red-500"></i>
+                            <div class="flex-1">
+                                <div class="h-1.5 w-16 bg-red-500/40 rounded-full mb-1"></div>
+                                <div class="h-1 w-full bg-red-500/10 rounded-full"></div>
+                            </div>
+                        </div>
+                        <p class="text-[11px] text-gray-600 italic">基于上次提交记录，毫秒级判定计划是否逾期，结果立等可见。</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- 4.2 新增：卓越成效 (Achievements & Performance) -->
+    <section id="performance" class="py-32 relative overflow-hidden bg-gradient-to-b from-black to-[#0a0a0a]">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-20 reveal">
+                <h2 class="text-3xl md:text-5xl font-bold tracking-tight mb-6 text-gradient-blue">工业级性能，触手可及。</h2>
+                <p class="text-lg text-gray-500 font-light max-w-2xl mx-auto">
+                    这不只是一个工具，更是一个能随着企业规模同步进化的资产中枢。
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[22rem] reveal"
+                style="transition-delay: 100ms;">
+
+                <!-- 卡片：万级并发支撑 -->
+                <div class="bento-card p-10 flex flex-col justify-between group">
+                    <div class="relative z-10">
+                        <span
+                            class="text-xs font-bold text-blue-500 uppercase tracking-widest mb-4 block">Scalability</span>
+                        <h4 class="text-5xl font-bold text-white mb-2 animate-pulse-glow">10,000+</h4>
+                        <p class="text-gray-400 text-sm leading-relaxed">
+                            基于异步并发引擎。目前稳定承载 400+ 设备，底层架构实测可支撑万级资产实时并发状态管理。
+                        </p>
+                    </div>
+                    <div class="h-1 bg-white/5 w-full rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-blue-600 to-blue-400 w-full animate-pulse-glow">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 卡片：批量导入与模糊搜索 -->
+                <div class="bento-card p-10 flex flex-col justify-between group">
+                    <div>
+                        <div class="flex items-center gap-3 mb-6">
+                            <i data-lucide="file-spreadsheet" class="text-emerald-400 w-5 h-5"></i>
+                            <i data-lucide="search" class="text-blue-400 w-5 h-5"></i>
+                        </div>
+                        <h4 class="text-2xl font-bold text-white mb-4">海量数据，秒级触达。</h4>
+                        <p class="text-gray-400 text-sm leading-relaxed">
+                            支持 Excel 批量导入全量资产数据。强大的模糊检索引擎，支持 SN、名称、分类及负责人多维协同搜索。
+                        </p>
+                    </div>
+                    <!-- 抽象检索框视觉 -->
+                    <div class="bg-white/5 border border-white/10 rounded-xl p-3 flex items-center gap-3">
+                        <div class="w-2 h-2 rounded-full bg-blue-500"></div>
+                        <div class="h-2 w-24 bg-white/10 rounded-full"></div>
+                    </div>
+                </div>
+
+                <!-- 卡片：批量打印 -->
+                <div class="bento-card p-10 flex flex-col justify-between group overflow-hidden">
+                    <div class="relative z-10">
+                        <h4 class="text-2xl font-bold text-white mb-4">一键投产。</h4>
+                        <p class="text-gray-400 text-sm">支持批量生成所有设备二维码，并自动排版为标准打印格式，让数字化部署在几个小时内完成。</p>
+                    </div>
+                    <!-- 循环滚动的二维码墙动画 -->
+                    <div class="animate-scroll-qr opacity-20 translate-y-8 translate-x-2">
+                        <div class="flex gap-2">
+                            <div class="shrink-0 w-16 h-16 bg-white/10 rounded-lg"></div>
+                            <div class="shrink-0 w-16 h-16 bg-white/20 rounded-lg"></div>
+                            <div class="shrink-0 w-16 h-16 bg-white/10 rounded-lg"></div>
+                            <div class="shrink-0 w-16 h-16 bg-white/20 rounded-lg"></div>
+                            <div class="shrink-0 w-16 h-16 bg-white/10 rounded-lg"></div>
+                            <div class="shrink-0 w-16 h-16 bg-white/20 rounded-lg"></div>
+                        </div>
+                        <div class="flex gap-2 ml-2">
+                            <div class="shrink-0 w-16 h-16 bg-white/10 rounded-lg"></div>
+                            <div class="shrink-0 w-16 h-16 bg-white/20 rounded-lg"></div>
+                            <div class="shrink-0 w-16 h-16 bg-white/10 rounded-lg"></div>
+                            <div class="shrink-0 w-16 h-16 bg-white/20 rounded-lg"></div>
+                            <div class="shrink-0 w-16 h-16 bg-white/10 rounded-lg"></div>
+                            <div class="shrink-0 w-16 h-16 bg-white/20 rounded-lg"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 卡片：配置灵活性 (横跨两格) -->
+                <div class="bento-card md:col-span-2 p-10 flex items-center justify-between group overflow-hidden">
+                    <div class="max-w-md relative z-10">
+                        <h4 class="text-3xl font-bold text-white mb-4">多维任务绑定。</h4>
+                        <p class="text-gray-400 text-lg">
+                            支持一台设备挂载多样化的检查模板与维护计划。任务周期（天/月）、负责人、推送节点均可独立配置，灵活应对复杂工业场景。
+                        </p>
+                    </div>
+                    <!-- 动态节点连接动画 -->
+                    <div class="hidden sm:flex relative w-48 h-48 items-center justify-center">
+                        <div
+                            class="absolute w-20 h-20 border border-white/20 rounded-full flex items-center justify-center">
+                            <i data-lucide="component" class="text-white/40"></i>
+                        </div>
+                        <div class="absolute top-0 right-0 p-2 bg-blue-500/20 rounded-lg border border-blue-500/40"><i
+                                data-lucide="calendar" class="w-4 h-4 text-blue-400"></i></div>
+                        <div
+                            class="absolute bottom-0 left-0 p-2 bg-purple-500/20 rounded-lg border border-purple-400/40">
+                            <i data-lucide="bell" class="w-4 h-4 text-purple-400"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 卡片：零维护成本 -->
+                <div class="bento-card p-10 flex flex-col justify-center items-center text-center">
+                    <div
+                        class="w-16 h-16 rounded-full bg-orange-500/10 flex items-center justify-center mb-6 border border-orange-500/20">
+                        <i data-lucide="zap" class="text-orange-400 w-8 h-8"></i>
+                    </div>
+                    <h4 class="text-xl font-bold text-white">开箱即用</h4>
+                    <p class="text-gray-500 text-xs mt-4">轻量化容器驱动，<br>极速部署。 </p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- 5. 底层架构参数 -->
+    <section id="tech" class="py-32 bg-[#0a0a0a]">
+        <div class="max-w-4xl mx-auto px-6 text-center reveal">
+            <h2 class="text-3xl font-bold tracking-tight mb-16 text-white">卓越性能，源于现代化技术栈。</h2>
+
+            <div class="divide-y divide-white/10 text-left border-y border-white/10">
+                <div class="py-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                    <span class="text-gray-500 font-medium">核心后端框架</span>
+                    <span class="text-white text-lg font-semibold mt-2 sm:mt-0">FastAPI (Python 3.8+)</span>
+                </div>
+                <div class="py-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                    <span class="text-gray-500 font-medium">数据存储引擎</span>
+                    <span class="text-white text-lg font-semibold mt-2 sm:mt-0">SQLite 3.0+ & SQLAlchemy 2.0+</span>
+                </div>
+                <div class="py-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                    <span class="text-gray-500 font-medium">前端响应式 UI</span>
+                    <span class="text-white text-lg font-semibold mt-2 sm:mt-0">HTML5 + Tailwind CSS 3.0+</span>
+                </div>
+                <div class="py-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                    <span class="text-gray-500 font-medium">自动化任务调度</span>
+                    <span class="text-white text-lg font-semibold mt-2 sm:mt-0">APScheduler</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 6. 展望与页脚 -->
+    <footer class="py-24 bg-black border-t border-white/5 relative overflow-hidden">
+        <div
+            class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-px bg-gradient-to-r from-transparent via-gray-700 to-transparent">
+        </div>
+
+        <div class="max-w-7xl mx-auto px-6 flex flex-col items-center text-center reveal">
+            <i data-lucide="rocket" class="w-12 h-12 text-gray-700 mb-8"></i>
+            <h2 class="text-3xl md:text-4xl font-bold mb-6 text-white">未来，已在规划之中。</h2>
+            <p class="text-gray-500 font-light max-w-2xl mb-16">
+                即将引入：AI 智能预测维护、IoT 物联网实时数据接入、微服务架构升级。我们致力于打造不断进化的工业大脑。
+            </p>
+
+            <div class="text-xs text-gray-600 tracking-widest uppercase mb-4">
+                Designed for Industry 4.0
+            </div>
+            <div class="text-[10px] text-gray-700">
+                &copy; 2026 Equipment Management System Team. 纯展示页面体验。
+            </div>
+        </div>
+    </footer>
+
+    <!-- 初始化脚本 -->
+    <script>
+        lucide.createIcons();
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const observerOptions = {
+                root: null,
+                threshold: 0.15,
+                rootMargin: "0px 0px -50px 0px"
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('active');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, observerOptions);
+
+            document.querySelectorAll('.reveal').forEach(el => {
+                observer.observe(el);
+            });
+        });
+    </script>
+</body>
+
+</html>
