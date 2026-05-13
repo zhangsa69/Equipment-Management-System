@@ -3,81 +3,136 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>设备报修 - 快速响应</title>
-    <!-- Offline Assets -->
+    <!-- Assets -->
     <script src="/static/js/tailwind.min.js"></script>
-    <style>
-        body {
-            background-color: #0f172a;
-            color: #f8fafc;
-            font-family: system-ui, -apple-system, sans-serif;
+    <script src="/static/js/lucide.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            600: '#2563eb',
+                        },
+                        surface: '#f8fafc',
+                    }
+                }
+            }
         }
+    </script>
+    <style>
+        body { background-color: #f1f5f9; color: #0f172a; -webkit-tap-highlight-color: transparent; }
+        
+        .ui-label {
+            font-size: 14px; font-weight: 900; color: #2563eb; text-transform: uppercase;
+            letter-spacing: 0.05em; margin-bottom: 4px; display: block;
+        }
+
+        .ui-content {
+            font-size: 14px; font-weight: 700; color: #0f172a;
+        }
+
+        .ui-input {
+            width: 100%; background-color: white; border: 1px solid #e2e8f0; border-radius: 16px;
+            padding: 16px; font-size: 14px; font-weight: 700; color: #0f172a; outline: none; transition: all 0.2s;
+        }
+        .ui-input:focus { border-color: #2563eb; box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1); }
+
+        .ui-button-primary {
+            width: 100%; background-color: #2563eb; color: white; font-size: 17px; font-weight: 900;
+            padding: 20px; border-radius: 20px; transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+            gap: 8px; box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2);
+        }
+        .ui-button-primary:active { transform: scale(0.98); }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .safe-area-inset-bottom { padding-bottom: env(safe-area-inset-bottom); }
     </style>
 </head>
 
-<body class="min-h-screen py-8 px-4">
-    <div class="max-w-lg mx-auto bg-slate-800 rounded-3xl shadow-2xl overflow-hidden border border-slate-700">
-        <header class="bg-red-600 p-6 text-center">
-            <h1 class="text-2xl font-bold text-white tracking-widest">设备故障报修</h1>
-            <p class="text-red-100 text-sm mt-1">提交后将立刻通过钉钉直达维修人员</p>
+<body class="font-sans antialiased">
+    <div class="max-w-md mx-auto min-h-screen bg-surface flex flex-col shadow-xl relative pb-40">
+        
+        <!-- Header -->
+        <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-100 px-5 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <button onclick="history.back()" class="p-2 -ml-2 text-slate-900">
+                    <i data-lucide="chevron-left" class="w-6 h-6"></i>
+                </button>
+                <h1 class="text-[17px] font-black text-slate-900 tracking-tight">异常报修申请</h1>
+            </div>
+            <div class="bg-brand-600 text-white px-3 py-1 rounded-full text-[14px] font-black uppercase tracking-widest">实时处理</div>
         </header>
 
-        <form id="repairForm" class="p-6 space-y-6">
-            <!-- 设备信息 (只读) -->
-            <div>
-                <label class="block text-slate-400 text-sm font-medium mb-1">设备名称</label>
-                <input type="text" id="deviceName" readonly
-                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white font-bold opacity-70">
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-slate-400 text-sm font-medium mb-1">设备编号 (SN)</label>
-                    <input type="text" id="deviceSn" readonly
-                        class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-300 font-mono text-sm opacity-70">
-                </div>
-                <div>
-                    <label class="block text-slate-400 text-sm font-medium mb-1">维修班长</label>
-                    <input type="text" id="leaderName" readonly
-                        class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-amber-400 font-bold opacity-70">
-                    <input type="hidden" id="leaderId">
+        <form id="repairForm" class="flex-1 flex flex-col">
+            <!-- Banner Section -->
+            <div class="px-5 pt-6">
+                <div class="bg-brand-600 rounded-3xl p-6 text-white shadow-lg shadow-brand-100">
+                    <div class="flex items-center gap-3 mb-2">
+                        <i data-lucide="alert-circle" class="w-6 h-6 text-white"></i>
+                        <h2 class="text-[17px] font-black">故障上报中心</h2>
+                    </div>
+                    <p class="text-white text-[14px] font-medium leading-relaxed">提交报修后，系统将秒级分发至对应维修班组，请保持现场描述清晰。</p>
                 </div>
             </div>
 
-            <hr class="border-slate-700">
-
-            <!-- 报修人选择 -->
-            <div class="relative">
-                <label class="block text-slate-300 text-lg font-bold mb-2">报修人员</label>
-                <input type="text" id="reporterSearch" autocomplete="off"
-                    class="w-full bg-slate-900 border border-slate-600 rounded-xl px-4 py-4 text-white text-lg focus:ring-2 focus:ring-red-500 outline-none"
-                    placeholder="输入姓名模糊搜索...">
-                <!-- 搜索结果列表 -->
-                <ul id="reporterList"
-                    class="hidden absolute top-full left-0 right-0 bg-slate-900 border border-slate-700 rounded-xl mt-1 z-50 max-h-48 overflow-y-auto shadow-2xl">
-                    <!-- 动态列表 -->
-                </ul>
-                <input type="hidden" id="reporterId" required>
+            <!-- Device Info (Single Column) -->
+            <div class="px-5 pt-8 space-y-6">
+                <div class="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm space-y-6">
+                    <div>
+                        <span class="ui-label">涉及故障设备</span>
+                        <p id="deviceName" class="ui-content text-[17px]">--</p>
+                    </div>
+                    <div>
+                        <span class="ui-label">设备序列号</span>
+                        <p id="deviceSn" class="ui-content font-mono">--</p>
+                    </div>
+                    <div>
+                        <span class="ui-label">指派维修负责人</span>
+                        <div class="flex items-center gap-2 mt-1">
+                            <i data-lucide="user-check" class="w-4 h-4 text-brand-600"></i>
+                            <p id="leaderName" class="ui-content">--</p>
+                            <input type="hidden" id="leaderId">
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- 故障描述 -->
-            <div>
-                <label class="block text-slate-300 text-lg font-bold mb-2">故障描述</label>
-                <textarea id="description" required rows="4"
-                    class="w-full bg-slate-900 border border-slate-600 rounded-xl px-4 py-4 text-white text-lg focus:ring-2 focus:ring-red-500 outline-none placeholder-slate-600"
-                    placeholder="请详细描述故障现象..."></textarea>
+            <!-- Inputs (Single Column) -->
+            <div class="px-5 pt-8 space-y-8">
+                <div class="space-y-2">
+                    <span class="ui-label">报修人员登记</span>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                            <i data-lucide="search" class="w-5 h-5 text-brand-600"></i>
+                        </div>
+                        <input type="text" id="reporterSearch" autocomplete="off" class="ui-input pl-12" placeholder="输入姓名快速搜索...">
+                        <ul id="reporterList" class="hidden absolute top-full left-0 right-0 bg-white border border-slate-100 rounded-2xl mt-2 z-50 max-h-56 overflow-y-auto shadow-2xl no-scrollbar"></ul>
+                    </div>
+                    <input type="hidden" id="reporterId" required>
+                </div>
+
+                <div class="space-y-2">
+                    <span class="ui-label">具体故障现象详述</span>
+                    <textarea id="description" required rows="5" class="ui-input resize-none" placeholder="请详细描述故障现象、发生部位及可能的诱因..."></textarea>
+                </div>
             </div>
-
-            <!-- 提交按钮 -->
-            <button type="submit" id="submitBtn"
-                class="w-full bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-black text-2xl py-6 rounded-2xl transition-all shadow-lg flex justify-center items-center">
-                🚀 提交报修通知
-            </button>
-
-            <button type="button" onclick="history.back()"
-                class="w-full text-slate-500 text-sm font-medium py-2">返回上一页</button>
         </form>
+
+        <!-- Footer -->
+        <div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/95 backdrop-blur-xl border-t border-slate-100 p-5 safe-area-inset-bottom z-40">
+            <button type="submit" form="repairForm" id="submitBtn" class="ui-button-primary">
+                <i data-lucide="send" class="w-6 h-6"></i>
+                <span>报修提交</span>
+            </button>
+        </div>
     </div>
 
     <script>
@@ -88,103 +143,55 @@
         const searchList = document.getElementById('reporterList');
         const hiddenIdInput = document.getElementById('reporterId');
 
-        // 1. 初始化拉取数据
+        function initIcons() { if (typeof lucide !== 'undefined') lucide.createIcons(); }
         async function init() {
+            initIcons();
             try {
-                // 并行拉取设备详情和人员列表
-                const [devRes, userRes] = await Promise.all([
-                    fetch(`${API_BASE_URL}/devices/${deviceId}`),
-                    fetch(`${API_BASE_URL}/users/`)
-                ]);
-
+                const [devRes, userRes] = await Promise.all([ fetch(`${API_BASE_URL}/devices/${deviceId}`), fetch(`${API_BASE_URL}/users/`) ]);
                 if (devRes.ok) {
                     const dev = await devRes.json();
-                    document.getElementById('deviceName').value = dev.name;
-                    document.getElementById('deviceSn').value = dev.sn;
+                    document.getElementById('deviceName').textContent = dev.name || '--';
+                    document.getElementById('deviceSn').textContent = dev.sn || '--';
                     const leaderName = dev.maintenance_leader || "未指定班长";
-                    document.getElementById('leaderName').value = leaderName;
-
+                    document.getElementById('leaderName').textContent = leaderName;
                     if (userRes.ok) {
                         usersList = await userRes.json();
-                        // 自动查找维修班长的 ID
                         const leader = usersList.find(u => u.name === leaderName);
                         if (leader) document.getElementById('leaderId').value = leader.id;
                     }
                 }
-            } catch (err) {
-                console.error(err);
-                alert("加载基础信息失败");
-            }
+            } catch (e) { alert("基础信息加载异常"); }
         }
 
-        // 2. 搜索展示逻辑
         searchInput.oninput = (e) => {
             const kw = e.target.value.trim().toLowerCase();
             if (!kw) { searchList.classList.add('hidden'); return; }
-
             const matches = usersList.filter(u => u.name.toLowerCase().includes(kw));
             if (matches.length > 0) {
-                searchList.innerHTML = matches.map(u => `<li onclick="selectUser('${u.id}', '${u.name}')" class="p-4 hover:bg-slate-700 border-b border-slate-700 cursor-pointer text-slate-200">
-                    <span class="font-bold">${u.name}</span>
-                    <span class="block text-xs text-slate-500">${u.id}</span>
-                </li>`).join('');
-                searchList.classList.remove('hidden');
-            } else {
-                searchList.classList.add('hidden');
-            }
+                searchList.innerHTML = matches.map(u => `
+                    <li onclick="selectUser('${u.id}', '${u.name}')" class="p-5 hover:bg-slate-50 border-b border-slate-50 cursor-pointer flex items-center justify-between group">
+                        <span class="font-black text-slate-900 text-[14px] group-hover:text-brand-600 transition-colors">${u.name}</span>
+                        <i data-lucide="check" class="w-5 h-5 text-brand-600"></i>
+                    </li>
+                `).join('');
+                searchList.classList.remove('hidden'); initIcons();
+            } else { searchList.classList.add('hidden'); }
         };
-
-        function selectUser(id, name) {
-            hiddenIdInput.value = id;
-            searchInput.value = name;
-            searchList.classList.add('hidden');
-        }
-
-        // 点击外部隐藏
-        document.onclick = (e) => {
-            if (e.target !== searchInput) searchList.classList.add('hidden');
-        };
+        function selectUser(id, name) { hiddenIdInput.value = id; searchInput.value = name; searchList.classList.add('hidden'); }
+        document.onclick = (e) => { if (e.target !== searchInput) searchList.classList.add('hidden'); };
 
         document.getElementById('repairForm').onsubmit = async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('submitBtn');
+            e.preventDefault(); const btn = document.getElementById('submitBtn');
             const leaderId = document.getElementById('leaderId').value;
             const reporterId = document.getElementById('reporterId').value;
-            const description = document.getElementById('description').value;
-
-            if (!reporterId) { alert("请搜索并选择一名正确的报修人！"); return; }
-            if (!leaderId) { alert("未识别到有效的维修班长，请检查。"); return; }
-
-            btn.disabled = true;
-            btn.textContent = "发送中...";
-
+            if (!reporterId) return alert("请选择报修人"); if (!leaderId) return alert("无法关联负责班组");
+            btn.disabled = true; btn.innerHTML = '<div class="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>';
             try {
-                const res = await fetch(`${API_BASE_URL}/repair/`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        device_id: deviceId,
-                        reporter_id: reporterId,
-                        leader_id: leaderId,
-                        description: description
-                    })
-                });
-
-                if (res.ok) {
-                    const result = await res.json();
-                    alert("✅ 报修成功！已实时通知维修班长协助派单。");
-                    window.location.href = `/inspect/${deviceId}`;
-                } else {
-                    alert("提交失败，请重试");
-                    btn.disabled = false;
-                    btn.textContent = "🚀 提交报修通知";
-                }
-            } catch (err) {
-                alert("网络异常");
-                btn.disabled = false;
-            }
+                const res = await fetch(`${API_BASE_URL}/repair/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ device_id: deviceId, reporter_id: reporterId, leader_id: leaderId, description: document.getElementById('description').value }) });
+                if (res.ok) { btn.innerHTML = '报修成功'; btn.classList.add('bg-emerald-500'); setTimeout(() => { window.location.href = `/inspect/${deviceId}`; }, 1500); }
+                else throw new Error();
+            } catch (err) { alert("提交失败"); btn.disabled = false; btn.innerHTML = '重试提交'; }
         };
-
         window.onload = init;
     </script>
 </body>

@@ -1,0 +1,2010 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>河北京车设备管理系统</title>
+    <!-- Offline Assets -->
+    <script src="/static/js/tailwind.min.js"></script>
+    <script src="/static/js/chart.min.js"></script>
+    <script src="/static/js/lucide.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#1e3a8a',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 自定义滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* 避免表格里的复选框和文字对不齐 */
+        .flex-center-y {
+            display: flex;
+            align-items: center;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 antialiased h-screen overflow-hidden flex">
+
+    <!-- 左侧导航栏?(Sidebar) - 在平板上会变窄或隐藏，这里采用全尺寸 PC 设计 -->
+    <aside
+        class="w-64 bg-slate-900 text-slate-300 flex-shrink-0 flex flex-col hidden md:flex transition-all duration-300 shadow-xl z-20">
+        <div class="h-16 flex items-center px-6 border-b border-slate-800 text-white font-bold text-xl tracking-wider">
+            <i data-lucide="cpu" class="mr-3 text-brand-500 w-6 h-6"></i>
+            河北京车<span class="text-brand-500 ml-1">设备管理</span>
+        </div>
+        <div class="p-4 flex-1 overflow-y-auto">
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 ml-2">主菜单/p>
+            <nav class="space-y-1" id="sidebarNav">
+                <a href="#dashboard-start" data-nav
+                    class="sidebar-link flex items-center px-4 py-3 bg-brand-600 text-white rounded-lg group shadow-md shadow-brand-500/20">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3"></i>
+                    全局概览
+                </a>
+                <a href="#assets-table" data-nav
+                    class="sidebar-link flex items-center px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg group transition-colors">
+                    <i data-lucide="server" class="w-5 h-5 mr-3"></i>
+                    资产管理
+                </a>
+                <a href="#plans-table" data-nav
+                    class="sidebar-link flex items-center px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg group transition-colors">
+                    <i data-lucide="clipboard-list" class="w-5 h-5 mr-3"></i>
+                    检查计划?
+                </a>
+                <a href="#maintenance-plans-table" data-nav
+                    class="sidebar-link flex items-center px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg group transition-colors">
+                    <i data-lucide="wrench" class="w-5 h-5 mr-3"></i>
+                    维护计划
+                </a>
+                <a href="#logs-table" data-nav
+                    class="sidebar-link flex items-center px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg group transition-colors">
+                    <i data-lucide="clipboard-check" class="w-5 h-5 mr-3"></i>
+                    系统日志
+                </a>
+                <a href="#personnel-table" data-nav
+                    class="sidebar-link flex items-center px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg group transition-colors">
+                    <i data-lucide="users" class="w-5 h-5 mr-3"></i>
+                    人员配置
+                </a>
+            </nav>
+        </div>
+        <div class="p-4 border-t border-slate-800">
+            <a href="/logout"
+                class="flex items-center px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors">
+                <i data-lucide="log-out" class="w-4 h-4 mr-2"></i> 退出登录?
+            </a>
+        </div>
+    </aside>
+
+    <!-- 右侧主内容区 -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden relative">
+
+        <!-- 顶部通栏 -->
+        <header
+            class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0 z-10 shadow-sm">
+            <div class="flex items-center">
+                <button class="md:hidden mr-4 text-slate-500 hover:text-slate-800">
+                    <i data-lucide="menu" class="w-6 h-6"></i>
+                </button>
+                <h2 class="text-xl font-bold text-slate-800">仪表盘/h2>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center border-l pl-4 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                    <div
+                        class="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-sm mr-2 shadow-inner">
+                        A
+                    </div>
+                    <span class="text-sm font-medium hidden sm:block">Admin</span>
+                    <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 ml-1"></i>
+                </div>
+            </div>
+        </header>
+
+        <!-- 页面滚动内容 -->
+        <div id="dashboard-top" class="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-slate-50/50 scroll-smooth">
+            <!-- 增加顶部锚点，确保由于 ID 在容器上导致的无法回滚问题?-->
+            <div id="dashboard-start" class="w-full h-0"></div>
+
+            <!-- 统计卡片区?-->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <!-- 鍗＄墖 1 -->
+                <div
+                    class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-center justify-between hover:shadow-md transition-shadow">
+                    <div>
+                        <p class="text-sm font-medium text-slate-500 mb-1">设备总资产/p>
+                        <h3 class="text-3xl font-bold text-slate-800" id="stat-total">--</h3>
+                        <p class="text-xs text-green-600 mt-2 flex items-center font-medium">
+                            <i data-lucide="trending-up" class="w-3 h-3 mr-1"></i> +4 本月新增
+                        </p>
+                    </div>
+                    <div class="w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center text-brand-600">
+                        <i data-lucide="database" class="w-7 h-7"></i>
+                    </div>
+                </div>
+
+                <!-- 鍗＄墖 2 -->
+                <div
+                    class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-center justify-between hover:shadow-md transition-shadow">
+                    <div>
+                        <p class="text-sm font-medium text-slate-500 mb-1">今日已检查/p>
+                        <h3 class="text-3xl font-bold text-slate-800">24 <span
+                                class="text-lg text-slate-400 font-normal">/ 35</span></h3>
+                        <p class="text-xs text-slate-500 mt-2 font-medium">完成率?68.5%</p>
+                    </div>
+                    <div class="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
+                        <i data-lucide="check-circle" class="w-7 h-7"></i>
+                    </div>
+                </div>
+
+                <!-- 鍗＄墖 3 -->
+                <div
+                    class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-center justify-between hover:shadow-md transition-shadow">
+                    <div>
+                        <p class="text-sm font-medium text-slate-500 mb-1">异常报警设备</p>
+                        <h3 class="text-3xl font-bold text-red-600" id="stat-error">0</h3>
+                        <p class="text-xs text-red-500 mt-2 flex items-center font-medium">
+                            需立即处理锛?
+                        </p>
+                    </div>
+                    <div class="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center text-red-600">
+                        <i data-lucide="alert-triangle" class="w-7 h-7"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 图表与快捷操作区 -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white lg:col-span-2 rounded-2xl p-6 shadow-sm border border-slate-100">
+                    <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center">
+                        <i data-lucide="bar-chart-2" class="w-5 h-5 mr-2 text-slate-400"></i>
+                        近 7 天检查达标率趋势
+                    </h3>
+                    <div class="relative h-64 w-full">
+                        <canvas id="inspectionChart"></canvas>
+                    </div>
+                </div>
+                <div
+                    class="bg-brand-600 rounded-2xl p-6 shadow-lg shadow-brand-500/30 text-white flex flex-col justify-between relative overflow-hidden">
+                    <div class="absolute -right-6 -bottom-6 opacity-10">
+                        <i data-lucide="printer" class="w-48 h-48"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold mb-2">批量资产数字化/h3>
+                        <p class="text-brand-100 text-sm mb-6 leading-relaxed">
+                            閫夋嫨涓嬫柟鍒楄〃涓殑璁惧锛屽嵆鍙竴閿敓鎴愭帓鐗堟帓濂界殑 A4 鎵撳嵃绾т簩缁寸爜璐寸焊銆傝创浜庤澶囪〃闈㈠嵆鍙畬鎴愯祫浜т笂浜戙€?
+                        </p>
+                    </div>
+                    <button onclick="bulkPrintQR()"
+                        class="w-full bg-white text-brand-600 hover:bg-slate-50 font-bold py-3 px-4 rounded-xl transition-colors shadow-md flex justify-center items-center z-10">
+                        <i data-lucide="printer" class="w-5 h-5 mr-2"></i>
+                        生成打印版二维码
+                    </button>
+                </div>
+            </div>
+
+            <!-- 数据表格区?-->
+            <div id="assets-table"
+                class="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col scroll-mt-6">
+                <!-- 表格控制头?-->
+                <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <h3 class="text-lg font-bold text-slate-800">设备列表</h3>
+                    <div class="flex items-center space-x-3 w-full sm:w-auto">
+                        <div class="relative flex-1 sm:w-64">
+                            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
+                            <input type="text" id="deviceSearchInput" oninput="handleDeviceSearch()"
+                                placeholder="搜索设备名称或SN码?.."
+                                class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition-colors">
+                        </div>
+                        <button onclick="handleDeviceSearch()"
+                            class="p-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 bg-white shadow-sm transition-colors">
+                            <i data-lucide="search" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="importDevices()" id="btn-import"
+                            class="flex items-center space-x-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-sm transition-colors ml-2">
+                            <i data-lucide="file-up" class="w-4 h-4"></i>
+                            <span class="font-medium whitespace-nowrap">批量导入</span>
+                        </button>
+                        <button onclick="openDeviceModal()"
+                            class="flex items-center space-x-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg shadow-sm transition-colors ml-2">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                            <span class="font-medium whitespace-nowrap">新增设备</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 表格本体 -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50/80 text-slate-500 text-xs uppercase tracking-wider">
+                                <th class="p-4 border-b border-slate-200 w-12 text-center">
+                                    <input type="checkbox" id="selectAll"
+                                        class="w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-slate-300">
+                                </th>
+                                <th class="p-4 border-b border-slate-200 font-semibold text-slate-600">设备名称</th>
+                                <th class="p-4 border-b border-slate-200 font-semibold text-slate-600">设备编号</th>
+                                <th class="p-4 border-b border-slate-200 font-semibold text-slate-600">规格型号</th>
+                                <th class="p-4 border-b border-slate-200 font-semibold text-slate-600">设备等级</th>
+                                <th class="p-4 border-b border-slate-200 font-semibold text-slate-600">负责部门</th>
+                                <th class="p-4 border-b border-slate-200 font-semibold text-slate-600">检查负责人</th>
+                                <th class="p-4 border-b border-slate-200 font-semibold text-slate-600">维修班长</th>
+                                <th class="p-4 border-b border-slate-200 font-semibold text-slate-600 w-24">状态/th>
+                                <th class="p-4 border-b border-slate-200 font-semibold text-slate-600">最近检查/th>
+                                <th class="p-4 border-b border-slate-200 font-semibold text-slate-600">最近维护/th>
+                                <th class="p-4 border-b border-slate-200 font-semibold text-slate-600 text-right">操作
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="deviceTableBody" class="divide-y divide-slate-100 text-sm">
+                            <!-- 鏁版嵁琛岀敱 JS 鍔ㄦ€佺敓鎴?-->
+                            <tr>
+                                <td colspan="9" class="p-8 text-center text-slate-400 font-medium tracking-wide">
+                                    <i data-lucide="loader-2"
+                                        class="w-6 h-6 animate-spin mx-auto mb-2 text-brand-500"></i>
+                                    加载数据中?..
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 分页 -->
+                <div
+                    class="px-5 py-4 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between rounded-b-2xl">
+                    <span class="text-sm text-slate-500 mb-4 sm:mb-0" id="device-table-info">共 0 条数据/span>
+                    <div class="flex items-center space-x-1" id="device-pagination">
+                        <!-- 分页按钮动态生成?-->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 检查计划掑尯 -->
+            <div id="plans-table"
+                class="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col mt-8 scroll-mt-6">
+                <!-- 控制头?-->
+                <div
+                    class="p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50/50 rounded-t-2xl">
+                    <div class="flex items-center">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center mr-3 text-orange-600">
+                            <i data-lucide="calendar-check" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-800">检查计划/h3>
+                            <p class="text-xs text-slate-500 mt-1">閰嶇疆璁惧鐨勫畾鏈熸鏌ユ爣鍑嗚姹備笌周期</p>
+                        </div>
+                    </div>
+                    <button onclick="openPlanModal()"
+                        class="flex items-center space-x-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors shadow-sm font-bold">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        <span>鏂板检查计划/span>
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50/80 text-slate-500 text-xs uppercase tracking-wider">
+                                <th class="p-4 border-b border-slate-200 font-semibold text-slate-600 w-16 text-center">
+                                    ID</th>
+                                <th class="p-4 border-b border-slate-200 font-semibold text-slate-600">璁″垝鍚嶇О</th>
+                                <th class="p-4 border-b border-slate-200 font-semibold text-slate-600">检查项</th>
+                                <th class="p-4 border-b border-slate-200 font-semibold text-slate-600 w-32">周期 (天</th>
+                                <th class="p-4 border-b border-slate-200 font-semibold text-slate-600 text-right w-24">
+                                    操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="planTableBody" class="divide-y divide-slate-100 text-sm">
+                            <tr>
+                                <td colspan="5" class="p-8 text-center text-slate-400 font-medium">鍔犺浇涓?..</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 维护计划鍖?-->
+            <div id="maintenance-plans-table"
+                class="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col mt-8 scroll-mt-6">
+                <div
+                    class="p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50/50 rounded-t-2xl">
+                    <div class="flex items-center">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center mr-3 text-emerald-600 shadow-sm border border-emerald-200">
+                            <i data-lucide="wrench" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-800">维护计划</h3>
+                            <p class="text-xs text-slate-500 mt-1">閰嶇疆璁惧鐨勫畾鏈熶笓涓氱淮鎶ら」鐩笌周期</p>
+                        </div>
+                    </div>
+                    <button onclick="openMaintenanceModal()"
+                        class="flex items-center space-x-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors shadow-sm font-bold">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        <span>鏂板维护计划</span>
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50/80 text-slate-500 text-xs uppercase tracking-wider">
+                                <th class="p-4 border-b border-slate-200 w-16 text-center font-semibold text-slate-600">
+                                    ID
+                                </th>
+                                <th class="p-4 border-b border-slate-200 font-semibold text-slate-600">维护计划鍚嶇О</th>
+                                <th class="p-4 border-b border-slate-200 font-semibold text-slate-600">核心维护内容清单</th>
+                                <th class="p-4 border-b border-slate-200 font-semibold text-slate-600 w-44">维保规律</th>
+                                <th class="p-4 border-b border-slate-200 font-semibold text-slate-600 text-right w-24">
+                                    操作
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="maintenancePlanTableBody" class="divide-y divide-slate-100 text-sm">
+                            <tr>
+                                <td colspan="5" class="p-8 text-center text-slate-400 font-medium">鏁版嵁鍔犺浇涓?..</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 检查日志楀尯 -->
+            <div id="logs-table"
+                class="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col mt-8 scroll-mt-6">
+                <!-- 控制头?-->
+                <div
+                    class="p-5 border-b border-slate-100 flex justify-between items-center gap-4 bg-slate-50/50 rounded-t-2xl">
+                    <div class="flex items-center">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center mr-3 text-purple-600">
+                            <i data-lucide="clipboard-check" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-800">系统全周期日志/h3>
+                            <p class="text-xs text-slate-500 mt-1">璁板綍璁惧浠庢鏌ャ€佹姤淇埌派单銆佸畬宸ョ殑鍏ㄧ敓鍛藉懆鏈熸搷浣滄祦姘/p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50/80 text-slate-500 text-xs uppercase tracking-wider">
+                                <th class="p-4 border-b border-slate-200 font-semibold text-slate-600">鍏ㄥ懆鏈熶簨浠惰鎯?(时间 / 鍒嗙被
+                                    / 详情 / 经办人?</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logTableBody" class="divide-y divide-slate-100 text-sm">
+                            <tr>
+                                <td colspan="5" class="p-8 text-center text-slate-400 font-medium tracking-wide">
+                                    <i data-lucide="loader-2"
+                                        class="w-6 h-6 animate-spin mx-auto mb-2 text-purple-500"></i>
+                                    加载数据中?..
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 人员架构区?(钉钉同步功能) -->
+            <div id="personnel-table"
+                class="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col mt-8 scroll-mt-6">
+                <div
+                    class="p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50/50 rounded-t-2xl">
+                    <div class="flex items-center">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center mr-3 text-brand-600">
+                            <i data-lucide="network" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-800">组织架构与人员配置/h3>
+                            <p class="text-xs text-slate-500 mt-1">当前閲囩敤閽夐拤閫氳褰曚綔涓哄熀鍑嗘暟鎹/p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3 w-full sm:w-auto">
+                        <div class="relative flex-1 sm:w-64">
+                            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
+                            <input type="text" id="userSearchInput" oninput="handleUserSearch()"
+                                placeholder="鎼滅储濮撳悕鎴栭拤閽塈D..."
+                                class="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors">
+                        </div>
+                        <button onclick="syncDingTalk()" id="btn-sync"
+                            class="flex items-center space-x-2 px-4 py-2 bg-[#D1EEF8] text-[#0A649E] hover:bg-[#BCE6F5] rounded-lg border border-[#A8DDF0] transition-colors shadow-sm font-bold">
+                            <i data-lucide="refresh-cw" class="w-4 h-4" id="icon-sync"></i>
+                            <span>同步钉钉通讯录/span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50/80 text-slate-500 text-xs uppercase tracking-wider">
+                                <th class="p-4 border-b border-slate-200 font-semibold text-slate-600">人员信息</th>
+                                <th class="p-4 border-b border-slate-200 font-semibold text-slate-600">归属部门</th>
+                                <th class="p-4 border-b border-slate-200 font-semibold text-slate-600">岗位角色</th>
+                                <th class="p-4 border-b border-slate-200 font-semibold text-slate-600">状态/th>
+                            </tr>
+                        </thead>
+                        <tbody id="userTableBody" class="divide-y divide-slate-100 text-sm">
+                            <tr>
+                                <td colspan="4" class="p-8 text-center text-slate-400 font-medium tracking-wide">
+                                    请点击右上角按钮同步钉钉通讯录?..
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 分页 -->
+                <div
+                    class="px-5 py-4 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between rounded-b-2xl">
+                    <span class="text-sm text-slate-500 mb-4 sm:mb-0" id="user-table-info">共 0 条数据/span>
+                    <div class="flex items-center space-x-1" id="user-pagination">
+                        <!-- 分页按钮动态生成?-->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- 弹窗: 娣诲姞/编辑检查计划?-->
+    <div id="planModal"
+        class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex-center-y justify-center opacity-0 transition-opacity duration-300 items-center">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform scale-95 transition-transform duration-300"
+            id="planModalCard">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/80">
+                <h3 class="font-bold text-slate-800 text-lg" id="planModalTitle">鏂板检查计划/h3>
+                <button onclick="closePlanModal()"
+                    class="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-full hover:bg-slate-200">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <form id="planForm" class="space-y-4">
+                    <input type="hidden" id="editPlanId" value="">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">模板计划名称</label>
+                        <input type="text" id="planName" required placeholder="濡傦細绌哄帇鏈烘棩甯告鏌?
+                            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">检查频率?(天</label>
+                            <input type="number" id="planPeriodDays" min="1" max="365" value="1"
+                                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">推送时间/label>
+                            <select id="planPushTime"
+                                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono">
+                                <option value="08:00">08:00</option>
+                                <option value="08:30">08:30</option>
+                                <option value="09:00">09:00</option>
+                                <option value="09:30">09:30</option>
+                                <option value="10:00">10:00</option>
+                                <option value="10:30">10:30</option>
+                                <option value="11:00">11:00</option>
+                                <option value="11:30">11:30</option>
+                                <option value="12:00">12:00</option>
+                                <option value="12:30">12:30</option>
+                                <option value="13:00">13:00</option>
+                                <option value="13:30">13:30</option>
+                                <option value="14:00">14:00</option>
+                                <option value="14:30">14:30</option>
+                                <option value="15:00">15:00</option>
+                                <option value="15:30">15:30</option>
+                                <option value="16:00">16:00</option>
+                                <option value="16:30">16:30</option>
+                                <option value="17:00">17:00</option>
+                                <option value="17:30">17:30</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">检查项鎸囨爣鍒楄〃 (回车换行分割)</label>
+                        <textarea id="planItems" required rows="4" placeholder="澶栧３闃叉紡鐢?#10;鍘嬪姏姘旈榾姝ｅ父&#10;娌归噺姝ｅ父"
+                            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none mb-1"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="p-5 border-t border-slate-100 flex justify-end space-x-3 bg-slate-50/50">
+                <button onclick="closePlanModal()"
+                    class="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors font-medium">取消</button>
+                <button onclick="savePlan()"
+                    class="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg shadow-sm transition-colors font-medium flex items-center">
+                    <i data-lucide="save" class="w-4 h-4 mr-2"></i> 保存计划
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 弹窗: 娣诲姞/编辑维护计划 -->
+    <div id="maintenanceModal"
+        class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex-center-y justify-center opacity-0 transition-opacity duration-300 items-center">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform scale-95 transition-transform duration-300"
+            id="maintenanceModalCard">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/80">
+                <h3 class="font-bold text-slate-800 text-lg" id="maintenanceModalTitle">鏂板维护计划</h3>
+                <button onclick="closeMaintenanceModal()"
+                    class="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-full hover:bg-slate-200">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <form id="maintenanceForm" class="space-y-4">
+                    <input type="hidden" id="editMaintenanceId" value="">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">维护计划鍚嶇О</label>
+                        <input type="text" id="maintenanceName" required placeholder="濡傦細绌哄帇鏈烘湀搴︽湡缁存姢"
+                            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">缁存姢周期 (鏈?</label>
+                            <input type="number" id="maintenancePeriodMonths" min="1" max="12" value="1"
+                                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">鎻愰啋鏃ユ湡 (鍙?</label>
+                            <input type="number" id="maintenancePushDay" min="1" max="28" value="28"
+                                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">鎻愰啋时间</label>
+                            <select id="maintenancePushTime"
+                                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono">
+                                <option value="08:00">08:00</option>
+                                <option value="08:30">08:30</option>
+                                <option value="09:00">09:00</option>
+                                <option value="09:30">09:30</option>
+                                <option value="10:00">10:00</option>
+                                <option value="10:30">10:30</option>
+                                <option value="11:00">11:00</option>
+                                <option value="11:30">11:30</option>
+                                <option value="12:00">12:00</option>
+                                <option value="12:30">12:30</option>
+                                <option value="13:00">13:00</option>
+                                <option value="13:30">13:30</option>
+                                <option value="14:00">14:00</option>
+                                <option value="14:30">14:30</option>
+                                <option value="15:00">15:00</option>
+                                <option value="15:30">15:30</option>
+                                <option value="16:00">16:00</option>
+                                <option value="16:30">16:30</option>
+                                <option value="17:00">17:00</option>
+                                <option value="17:30">17:30</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">鍏蜂綋缁存姢鏉＄洰 (姣忚涓€椤?</label>
+                        <textarea id="maintenanceItems" rows="5" required placeholder="更换润滑油?#10;清洗空调滤网&#10;检查传动皮带?
+                            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="p-5 border-t border-slate-100 flex justify-end space-x-3 bg-slate-50/50">
+                <button onclick="closeMaintenanceModal()"
+                    class="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors font-medium">取消</button>
+                <button onclick="saveMaintenancePlan()"
+                    class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-sm transition-colors font-medium flex items-center">
+                    <i data-lucide="save" class="w-4 h-4 mr-2"></i> 保存计划
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="deviceModal"
+        class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex-center-y justify-center opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden transform scale-95 transition-transform duration-300 mx-4"
+            id="deviceModalCard">
+            <div
+                class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/80 sticky top-0 z-10">
+                <h3 class="font-bold text-slate-800 text-lg" id="deviceModalTitle">新增资产设备</h3>
+                <button onclick="closeDeviceModal()"
+                    class="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-full hover:bg-slate-200">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1 custom-scrollbar">
+                <form id="deviceForm" class="space-y-4">
+                    <input type="hidden" id="editDeviceId" value="">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">设备名称</label>
+                            <input type="text" id="devName" required
+                                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">设备编号 (SN)</label>
+                            <input type="text" id="devSn" required
+                                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">固定资产编号</label>
+                            <input type="text" id="devAssetNo"
+                                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">规格型号</label>
+                            <input type="text" id="devSpec"
+                                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">生产厂家</label>
+                            <input type="text" id="devManufacturer"
+                                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">设备等级</label>
+                            <select id="devGrade"
+                                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                                <option value="">-- 请选择 --</option>
+                                <option value="A">A 绾/option>
+                                <option value="B">B 绾/option>
+                                <option value="C">C 绾/option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">入厂日期</label>
+                            <input type="text" id="devPurchaseDate" placeholder="YYYY-MM-DD"
+                                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">终验日期</label>
+                            <input type="text" id="devFinalDate" placeholder="YYYY-MM-DD"
+                                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">负责部门</label>
+                            <input type="text" id="devDept"
+                                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">放置地点</label>
+                            <input type="text" id="devLocation"
+                                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">杩愯状态/label>
+                            <select id="devStatus"
+                                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                                <option value="杩愯涓?>杩愯涓/option>
+                                <option value="鍋滄満">鍋滄満</option>
+                                <option value="缁存姢">缁存姢</option>
+                                <option value="鎶ュ簾">鎶ュ簾</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">检查负责人</label>
+                            <div class="space-y-0.5">
+                                <input type="text" oninput="filterUserOptions('devInspector', this.value)"
+                                    placeholder="🔍 杈撳叆濮撳悕妯＄硦鎼滅储..."
+                                    class="w-full px-3 py-2 text-xs border border-slate-200 rounded-t-lg bg-slate-50 border-b-0 focus:outline-none focus:bg-white transition-all">
+                                <select id="devInspector"
+                                    class="w-full px-3 py-2 border border-slate-300 rounded-b-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                                    <option value="">-- 暂不绑定 --</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">维修班长</label>
+                            <div class="space-y-0.5">
+                                <input type="text" oninput="filterUserOptions('devMaintenanceLeaderId', this.value)"
+                                    placeholder="🔍 杈撳叆濮撳悕妯＄硦鎼滅储..."
+                                    class="w-full px-3 py-2 text-xs border border-slate-200 rounded-t-lg bg-slate-50 border-b-0 focus:outline-none focus:bg-white transition-all">
+                                <select id="devMaintenanceLeaderId"
+                                    class="w-full px-3 py-2 border border-slate-300 rounded-b-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                                    <option value="">-- 暂不绑定 --</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 gap-6 pt-4 border-t border-slate-100">
+                        <div>
+                            <label class="block text-sm font-black text-blue-600 mb-2 flex items-center">
+                                <span class="w-1.5 h-1.5 rounded-full bg-blue-500 mr-2"></span>缁戝畾检查计划模板?
+                            </label>
+                            <div id="devTemplateContainer"
+                                class="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 border border-slate-200 rounded-xl bg-slate-50/50 max-h-32 overflow-y-auto">
+                                <p class="text-xs text-slate-400 italic col-span-full">姝ｅ湪鍔犺浇检查计划?..</p>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-black text-emerald-600 mb-2 flex items-center">
+                                <i data-lucide="wrench" class="w-3.5 h-3.5 mr-2"></i>缁戝畾维护计划妯℃澘
+                            </label>
+                            <div id="devMaintenancePlanContainer"
+                                class="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 border border-slate-200 rounded-xl bg-emerald-50/30 max-h-32 overflow-y-auto">
+                                <p class="text-xs text-slate-400 italic col-span-full">姝ｅ湪鍔犺浇维护计划...</p>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div
+                class="p-5 border-t border-slate-100 flex justify-end space-x-3 bg-slate-50/80 sticky bottom-0 z-10 backdrop-blur-sm">
+                <button onclick="closeDeviceModal()"
+                    class="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors font-medium">取消</button>
+                <button onclick="saveDevice()"
+                    class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg shadow-sm transition-colors font-medium flex items-center">
+                    <i data-lucide="save" class="w-4 h-4 mr-2"></i> 淇濆瓨
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 弹窗: 查看二维码预览?-->
+    <div id="qrModal"
+        class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex-center-y justify-center opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform scale-95 transition-transform duration-300"
+            id="qrModalCard">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/80">
+                <h3 class="font-bold text-slate-800 text-lg">设备专属二维码/h3>
+                <button onclick="closeModal()"
+                    class="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-full hover:bg-slate-200">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div
+                class="p-6 flex flex-col items-center justify-center bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-50 to-white">
+                <div class="border border-slate-200 p-3 bg-white rounded-xl shadow-sm mb-4 relative group">
+                    <img id="qrModalImg" src="" alt="QR Code" class="w-48 h-48 object-contain">
+                    <div
+                        class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center">
+                        <a id="qrModalDownload" href="#" download
+                            class="bg-white text-slate-800 p-2 rounded-full font-bold text-xs shadow-lg hover:bg-brand-50 transition-colors flex items-center">
+                            <i data-lucide="download" class="w-4 h-4 mr-1"></i> 下载
+                        </a>
+                    </div>
+                </div>
+                <h4 id="qrModalDeviceName" class="text-lg font-bold text-slate-800">--</h4>
+                <p id="qrModalDeviceSn" class="text-sm text-slate-500 font-mono mt-1 tracking-wider">--</p>
+                <p class="text-xs text-slate-400 mt-4 text-center">浣跨敤閽夐拤鎴栨墜鏈烘祻瑙堝櫒鎵竴鎵?br />鍗冲彲杩涜鏃ュ父检查ユ垨查看鍙拌处淇℃伅</p>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // 鍒濆鍖?Lucide 鍥炬爣
+        lucide.createIcons();
+        // 鍏ㄥ眬分页状态?
+        const pageSize = 10;
+        let deviceCurrentPage = 1;
+        let userCurrentPage = 1;
+        let maintenanceDataList = []; // 维护计划鏁版嵁
+
+        // 閫氱敤分页娓叉煋鍑芥暟
+        function renderPagination(total, containerId, onPageChange, currentPage) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.innerHTML = '';
+            const totalPages = Math.ceil(total / pageSize);
+            if (totalPages <= 1) return;
+
+            const addBtn = (p, text, active = false, disabled = false) => {
+                const btn = document.createElement('button');
+                btn.className = active
+                    ? `px-3 py-1 pb-1.5 border border-brand-500 bg-brand-500 text-white rounded font-medium shadow-sm shadow-brand-500/20`
+                    : `px-3 py-1 pb-1.5 border border-slate-200 bg-white rounded text-slate-600 hover:bg-slate-50 disabled:opacity-50`;
+                btn.textContent = text || p;
+                btn.disabled = disabled;
+                if (!disabled && text !== '...') btn.onclick = () => onPageChange(p);
+                container.appendChild(btn);
+            };
+
+            // 涓婁竴椤?
+            addBtn(currentPage - 1, '涓婁竴椤?, false, currentPage === 1);
+
+            let pages = [];
+            if (totalPages <= 7) {
+                for (let i = 1; i <= totalPages; i++) pages.push(i);
+            } else {
+                if (currentPage <= 4) {
+                    pages = [1, 2, 3, 4, 5, '...', totalPages];
+                } else if (currentPage > totalPages - 4) {
+                    pages = [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+                } else {
+                    pages = [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+                }
+            }
+
+            pages.forEach(p => {
+                if (p === '...') {
+                    const span = document.createElement('span');
+                    span.className = "px-2 text-slate-400 font-bold self-end pb-1.5";
+                    span.textContent = "...";
+                    container.appendChild(span);
+                } else {
+                    addBtn(p, p, p === currentPage);
+                }
+            });
+
+            // 涓嬩竴椤?
+            addBtn(currentPage + 1, '涓嬩竴椤?, false, currentPage === totalPages);
+        }
+
+
+        // ==== 渚ц竟鏍忓鑸€変腑状态佸垏鎹?====
+        const ACTIVE_CLASSES = ['bg-brand-600', 'text-white', 'shadow-md', 'shadow-brand-500/20'];
+        const INACTIVE_CLASSES = ['text-slate-400', 'hover:text-white', 'hover:bg-slate-800'];
+
+        document.querySelectorAll('#sidebarNav a[data-nav]').forEach(link => {
+            link.addEventListener('click', function () {
+                // 鍏堟妸鎵€鏈夐摼鎺ユ仮澶嶆垚鏈€変腑
+                document.querySelectorAll('#sidebarNav a[data-nav]').forEach(a => {
+                    ACTIVE_CLASSES.forEach(c => a.classList.remove(c));
+                    INACTIVE_CLASSES.forEach(c => a.classList.add(c));
+                });
+                // 鍐嶆妸当前鐐瑰嚮鐨勯摼鎺ヨ涓洪€変腑
+                INACTIVE_CLASSES.forEach(c => this.classList.remove(c));
+                ACTIVE_CLASSES.forEach(c => this.classList.add(c));
+            });
+        });
+
+        // ==== 璁惧鎼滅储鍔熻兘 ====
+        function handleDeviceSearch() {
+            const keyword = (document.getElementById('deviceSearchInput').value || '').trim().toLowerCase();
+            if (!keyword) {
+                renderTable(deviceDataList);
+                return;
+            }
+            const filtered = deviceDataList.filter(d =>
+                (d.name && d.name.toLowerCase().includes(keyword)) ||
+                (d.sn && d.sn.toLowerCase().includes(keyword))
+            );
+            renderTable(filtered);
+        }
+
+        // 瀛樺偍璁惧鏁版嵁鐨勫叏灞€鍙橀噺
+        let deviceDataList = [];
+
+        // 颜色映射閫昏緫
+        const statusColors = {
+            '杩愯涓?: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+            '鍋滄満': 'bg-red-100 text-red-700 border-red-200',
+            '缁存姢': 'bg-amber-100 text-amber-700 border-amber-200'
+        };
+        const statusDots = {
+            '杩愯涓?: 'bg-emerald-500',
+            '鍋滄満': 'bg-red-500',
+            '缁存姢': 'bg-amber-500'
+        };
+
+        // ==== 1. 鍒濆鍖栧苟鑾峰彇鏁版嵁 ====
+        async function fetchDevices() {
+            try {
+                // 璇锋眰鍒氭墠娣诲姞鐨/devices/ 鎺ュ彛鑾峰彇鍏ㄩ儴璁惧
+                const response = await fetch('/devices/');
+                if (!response.ok) throw new Error('缃戠粶鍝嶅簲寮傚父');
+
+                deviceDataList = await response.json();
+                renderTable(deviceDataList);
+                updateDashboardStats(deviceDataList);
+
+            } catch (error) {
+                console.error('鑾峰彇设备列表澶辫触:', error);
+                document.getElementById('deviceTableBody').innerHTML = `
+                    <tr><td colspan="11" class="p-8 text-center text-red-500 font-medium tracking-wide bg-red-50/50">鑾峰彇鏁版嵁澶辫触锛岃閲嶈瘯 (${error.message})</td></tr>
+                `;
+            }
+        }
+
+        // ==== 2. 娓叉煋琛ㄦ牸 ====
+        function renderTable(devices) {
+            const tbody = document.getElementById('deviceTableBody');
+            tbody.innerHTML = '';
+
+            const total = devices.length;
+            const info = document.getElementById('device-table-info');
+            if (info) info.textContent = `鍏?${total} 条数据甡;
+
+            if (total === 0) {
+                tbody.innerHTML = `<tr><td colspan="11" class="p-8 text-center text-slate-500">暂无璁惧璧勪骇鏁版嵁</td></tr>`;
+                renderPagination(0, 'device-pagination', null, 1);
+                return;
+            }
+
+            // 分页閫昏緫
+            const start = (deviceCurrentPage - 1) * pageSize;
+            const end = start + pageSize;
+            const pagedData = devices.slice(start, end);
+
+            // 鑻ュ綋鍓嶉〉鏃犳暟鎹笖闈炵涓€椤碉紝璺冲洖绗竴椤?
+            if (pagedData.length === 0 && total > 0) {
+                deviceCurrentPage = 1;
+                renderTable(devices);
+                return;
+            }
+
+            renderPagination(total, 'device-pagination', (p) => {
+                deviceCurrentPage = p;
+                renderTable(devices);
+                window.scrollTo({ top: document.getElementById('assets-table').offsetTop - 20, behavior: 'smooth' });
+            }, deviceCurrentPage);
+
+            pagedData.forEach(device => {
+                const sColor = statusColors[device.status] || 'bg-slate-100 text-slate-700 border-slate-200';
+                const dColor = statusDots[device.status] || 'bg-slate-500';
+
+                let lastCheckHtml = '';
+                if (device.is_overdue) {
+                    lastCheckHtml = `<div class="flex items-center text-red-600 font-bold bg-red-50 px-2.5 py-1 rounded inline-flex border border-red-100 animate-pulse shadow-sm w-max"><i data-lucide="alert-circle" class="w-3.5 h-3.5 mr-1.5"></i> 宸查€炬湡寰呮鏌/div>`;
+                } else if (!device.templates || device.templates.length === 0) {
+                    lastCheckHtml = `<div class="flex items-center text-slate-400 font-medium px-2.5 py-1 w-max"><i data-lucide="minus-circle" class="w-3.5 h-3.5 mr-1.5"></i> 鏈帓鐝/div>`
+                } else {
+                    lastCheckHtml = `<div class="flex items-center text-emerald-600 font-medium bg-emerald-50 px-2.5 py-1 rounded inline-flex border border-emerald-100 w-max"><i data-lucide="check-circle" class="w-3.5 h-3.5 mr-1.5"></i> 姝ｅ父淇濇姢涓/div>`;
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50/80 transition-colors group";
+
+                const lastInspectionTimeText = device.last_inspection_time
+                    ? new Date(device.last_inspection_time + 'Z').toLocaleString('zh-CN', { hour12: false }).replace('T', ' ')
+                    : '暂无检查ヨ褰?;
+
+                tr.innerHTML = `
+                    <td class="p-4 border-b border-slate-100 text-center">
+                        <input type="checkbox" value="${device.id}" class="device-checkbox w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-slate-300">
+                    </td>
+                    <td class="p-4 border-b border-slate-100">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 rounded bg-slate-100 text-slate-500 flex items-center justify-center mr-2 border border-slate-200 flex-shrink-0">
+                                <i data-lucide="cpu" class="w-4 h-4"></i>
+                            </div>
+                            <span class="font-bold text-slate-800">${device.name}</span>
+                        </div>
+                    </td>
+                    <td class="p-4 border-b border-slate-100 font-mono text-sm text-slate-600">
+                        ${device.sn}
+                    </td>
+                    <td class="p-4 border-b border-slate-100 text-slate-600">
+                        ${device.spec || '-'}
+                    </td>
+                    <td class="p-4 border-b border-slate-100">
+                        <span class="px-2 py-0.5 rounded text-xs font-bold border ${device.grade === 'A' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-slate-50 text-slate-600 border-slate-100'}">
+                            ${device.grade || '-'}
+                        </span>
+                    </td>
+                    <td class="p-4 border-b border-slate-100 text-slate-600 text-xs">
+                        ${device.dept || '-'}
+                    </td>
+                    <td class="p-4 border-b border-slate-100 text-slate-700">
+                        ${device.inspector ? device.inspector.name : '<span class="text-slate-300">未分配/span>'}
+                    </td>
+                    <td class="p-4 border-b border-slate-100 text-slate-600">
+                        ${device.maintenance_leader || '-'}
+                    </td>
+                    <td class="p-4 border-b border-slate-100">
+                        <div class="flex items-center">
+                            <div class="w-2 h-2 rounded-full mr-2 ${device.status === '鏁呴殰' ? 'bg-red-500' : 'bg-emerald-500 animate-pulse'}"></div>
+                            <span class="font-bold ${device.status === '鏁呴殰' ? 'text-red-600' : 'text-emerald-600'}">
+                                ${device.status === '鏁呴殰' ? '鏁呴殰' : '姝ｅ父'}
+                            </span>
+                        </div>
+                    </td>
+                    <td class="p-4 border-b border-slate-100 text-xs text-slate-500 font-mono">
+                        ${(() => {
+                        if (!device.last_inspection_time) return '<span class="text-amber-500 font-bold bg-amber-50 px-1.5 py-0.5 rounded">寰呮鏌/span>';
+                        const d = new Date(device.last_inspection_time + (device.last_inspection_time.includes('Z') ? '' : 'Z'));
+                        return isNaN(d.getTime()) ? '-' : d.toLocaleString('zh-CN', { hour12: false, month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\//g, '-');
+                    })()}
+                    </td>
+                    <td class="p-4 border-b border-slate-100 text-xs text-slate-500 font-mono">
+                        ${(() => {
+                        if (!device.last_maintenance_time) return '<span class="text-blue-500 font-bold bg-blue-50 px-1.5 py-0.5 rounded">寰呯淮鎶/span>';
+                        const d = new Date(device.last_maintenance_time + (device.last_maintenance_time.includes('Z') ? '' : 'Z'));
+                        return isNaN(d.getTime()) ? '-' : d.toLocaleString('zh-CN', { hour12: false, month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\//g, '-');
+                    })()}
+                    </td>
+                    <td class="p-4 border-b border-slate-100 text-right">
+                        <div class="flex items-center justify-end space-x-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                            <button onclick="openQRModal('${device.id}', '${device.name}', '${device.sn}', '${device.qr_code_path}')" class="p-1.5 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded transition-colors tooltip-btn" title="查看二维码?>
+                                <i data-lucide="qr-code" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="openDeviceModal('${device.id}')" class="p-1.5 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded transition-colors tooltip-btn" title="编辑璧勬枡">
+                                <i data-lucide="edit-3" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="deleteDevice('${device.id}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors tooltip-btn" title="鍒犻櫎璁惧">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // 閲嶆柊娓叉煋鍥炬爣锛堝姩鎬佹彃鍏ョ殑 HTML 闇€瑕佽繖鍙ワ級
+            lucide.createIcons();
+            const deviceTableInfo = document.getElementById('device-table-info');
+            if (deviceTableInfo) deviceTableInfo.textContent = `鍏辫褰?${total} 鍙拌澶囨暟鎹甡;
+        }
+
+        // ==== 3. 鏇存柊缁熻鍗＄墖 ====
+        function updateDashboardStats(devices) {
+            document.getElementById('stat-total').textContent = devices.length;
+
+            // 鍋囪鍋滄満涓庣淮鎶や篃褰掍负寮傚父鑼冨洿锛堜粎閫昏緫妯℃嫙锛?
+            const errorCount = devices.filter(d => d.status !== '杩愯涓?).length;
+            document.getElementById('stat-error').textContent = errorCount;
+        }
+
+        // ==== 4. Chart.js 鎶樼嚎鍥惧垵濮嬪寲 ====
+        function initChart() {
+            const ctx = document.getElementById('inspectionChart').getContext('2d');
+
+            // 鏋勯€犳笎鍙樿壊濉厖
+            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, 'rgba(59, 130, 246, 0.2)'); // brand-500 20%
+            gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['鍛ㄤ竴', '鍛ㄤ簩', '鍛ㄤ笁', '鍛ㄥ洓', '鍛ㄤ簲', '鍛ㄥ叚', '鍛ㄦ棩'],
+                    datasets: [{
+                        label: '检查ヨ揪鏍囩巼 (%)',
+                        data: [82, 85, 80, 91, 95, 88, 98],
+                        borderColor: '#3b82f6', // brand-500
+                        backgroundColor: gradient,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#3b82f6',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        fill: true,
+                        tension: 0.4 // 鏇茬嚎骞虫粦搴?
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 60,
+                            max: 100,
+                            grid: {
+                                color: '#f1f5f9', // slate-100
+                                drawBorder: false,
+                            },
+                            ticks: { color: '#94a3b8' } // slate-400
+                        },
+                        x: {
+                            grid: {
+                                display: false,
+                                drawBorder: false,
+                            },
+                            ticks: { color: '#94a3b8' }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index',
+                    },
+                }
+            });
+        }
+
+        // ==== 5. 浜や簰锛氫簩缁寸爜 Modal 鎺у埗 ====
+        const modal = document.getElementById('qrModal');
+        const modalCard = document.getElementById('qrModalCard');
+
+        function openQRModal(id, name, sn, path) {
+            document.getElementById('qrModalDeviceName').textContent = name;
+            document.getElementById('qrModalDeviceSn').textContent = sn;
+            document.getElementById('qrModalImg').src = "/" + path + "?t=" + new Date().getTime();
+            document.getElementById('qrModalDownload').href = "/" + path + "?t=" + new Date().getTime();
+
+            modal.classList.remove('hidden');
+            // 瑙﹀彂鍔ㄧ敾甯ц繃娓?
+            requestAnimationFrame(() => {
+                modal.classList.remove('opacity-0');
+                modalCard.classList.remove('scale-95');
+                modalCard.classList.add('scale-100');
+            });
+        }
+
+        function closeModal() {
+            modal.classList.add('opacity-0');
+            modalCard.classList.remove('scale-100');
+            modalCard.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300); // 瀵瑰簲 Tailwind duration-300
+        }
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+
+        // ==== 6. 鍏ㄩ€夐€昏緫 ====
+        document.getElementById('selectAll').addEventListener('change', function (e) {
+            const isChecked = e.target.checked;
+            document.querySelectorAll('.device-checkbox').forEach(cb => {
+                cb.checked = isChecked;
+            });
+        });
+
+        // ==== 7. 鎵归噺鎵撳嵃鐢熸垚閫昏緫 ====
+        function bulkPrintQR() {
+            const checkedBoxes = document.querySelectorAll('.device-checkbox:checked');
+            if (checkedBoxes.length === 0) {
+                alert("璇疯嚦灏戝湪鍒楄〃涓嬀閫変竴鍙伴渶瑕佺敓鎴愭爣绛剧殑璁惧锛?);
+                return;
+            }
+
+            // 鑾峰彇琚€変腑鐨勮澶囨暟鎹?
+            const selectedIds = Array.from(checkedBoxes).map(cb => cb.value);
+            const selectedDevices = deviceDataList.filter(d => selectedIds.includes(d.id));
+
+            // 鏋勫缓鏂扮獥鍙ｇ殑 DOM 椤甸潰
+            let printWindow = window.open('', '_blank');
+            if (!printWindow) {
+                alert("璇峰厑璁稿脊绐楋紝鎵撳嵃椤佃娴忚鍣ㄦ嫤鎴紒");
+                return;
+            }
+
+            let htmlContent = `
+                <!DOCTYPE html>
+                <html lang="zh-CN">
+                <head>
+                    <title>鎵归噺鎵撳嵃二维码佹爣绛/title>
+                    <style>
+                        body {
+                            font-family: 'Segoe UI', Arial, sans-serif;
+                            margin: 0; padding: 20px;
+                            background: #f1f5f9;
+                        }
+                        .page-title { text-align: center; margin-bottom: 30px; }
+                        
+                        /* A4绾稿紶鎵撳嵃鎺掔増閰嶇疆 */
+                        .print-grid {
+                            display: grid;
+                            grid-template-columns: repeat(3, 1fr); /* 涓€琛?涓?*/
+                            gap: 15px;
+                            margin: 0 auto;
+                        }
+
+                        /* 鍗＄墖鏈綋鏍峰紡 */
+                        .label-card {
+                            background: #ffffff;
+                            border: 2px solid #000; /* 楂樺姣斿害榛戣竟锛屼究浜庤鍒?*/
+                            border-radius: 8px;
+                            padding: 15px;
+                            text-align: center;
+                            page-break-inside: avoid;
+                            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                        }
+                        .label-title { font-size: 16px; font-weight: bold; margin: 0 0 5px 0; color: #000; }
+                        .label-sn { font-size: 12px; margin: 0 0 10px 0; color: #333; font-family: monospace; }
+                        img.qr-img { width: 140px; height: 140px; margin: 0 auto; display: block; }
+                        .scan-tip { font-size: 10px; color: #666; margin-top: 10px; font-weight: bold;}
+
+                        @media print {
+                            body { background: #fff; padding: 0; }
+                            .page-title { display: none; } /* 鎵撳嵃鏃堕殣钘忔爣棰?*/
+                            .print-grid { gap: 5px; }
+                            .label-card { border: 1px dashed #999; box-shadow: none; border-radius: 0; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="page-title">
+                        <h2>设备管理二维码佹爣绛炬墦鍗伴瑙/h2>
+                        <button onclick="window.print()" style="padding: 10px 20px; background: #2563eb; color: #fff; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: bold;">
+                            鐐瑰嚮鐩存帴鎵撳嵃 (鍙彟瀛樹负PDF)
+                        </button>
+                    </div>
+                    <div class="print-grid">
+            `;
+
+            selectedDevices.forEach(device => {
+                htmlContent += `
+                    <div class="label-card">
+                        <p class="label-title">${device.name}</p>
+                        <p class="label-sn">${device.sn}</p>
+                        <img src="/${device.qr_code_path}?t=${new Date().getTime()}" class="qr-img" alt="二维码?>
+                        <div class="scan-tip">鎵竴鎵紝查看璁惧鍙拌处涓庢鏌/div>
+                    </div>
+                `;
+            });
+
+            htmlContent += `
+                    </div>
+                    <script>
+                        // 绐楀彛鍔犺浇瀹屽浘鐗囧悗鎻愮ず鎵撳嵃
+                        window.onload = () => {
+                            setTimeout(() => window.print(), 500);
+                        }
+                    <\/script>
+                </body>
+                </html>
+            `;
+
+            printWindow.document.write(htmlContent);
+            printWindow.document.close();
+        }
+
+        // ==== 8. 澧炲垹鏀规煡涓氬姟閫昏緫浜や簰 ====
+        const deviceModal = document.getElementById('deviceModal');
+        const deviceModalCard = document.getElementById('deviceModalCard');
+
+        function openDeviceModal(id = null) {
+            document.getElementById('deviceForm').reset();
+            // 閲嶇疆鎼滅储鍒楄〃鏄剧ず鍏ㄩ噺
+            populateInspectorOptions(userDataList);
+            const title = document.getElementById('deviceModalTitle');
+            const idInput = document.getElementById('editDeviceId');
+
+            if (id) {
+                // 编辑妯″紡鍔犺浇鏁版嵁
+                title.textContent = "编辑璧勪骇璧勬枡";
+                idInput.value = id;
+                const dev = deviceDataList.find(d => d.id === id);
+                if (dev) {
+                    document.getElementById('devName').value = dev.name;
+                    document.getElementById('devSn').value = dev.sn;
+                    document.getElementById('devStatus').value = dev.status;
+
+                    const selectedIds = dev.templates ? dev.templates.map(t => t.id) : [];
+                    document.querySelectorAll('input[name="dev-template-check"]').forEach(cb => {
+                        cb.checked = selectedIds.includes(parseInt(cb.value));
+                    });
+
+                    const mSelectedIds = dev.maintenance_plans ? dev.maintenance_plans.map(t => t.id) : [];
+                    document.querySelectorAll('input[name="dev-mplan-check"]').forEach(cb => {
+                        cb.checked = mSelectedIds.includes(parseInt(cb.value));
+                    });
+
+                    document.getElementById('devInspector').value = dev.inspector_id || '';
+                    document.getElementById('devMaintenanceLeaderId').value = dev.maintenance_leader_id || '';
+
+                    // 鎵╁睍瀛楁濉厖
+                    document.getElementById('devAssetNo').value = dev.asset_no || '';
+                    document.getElementById('devSpec').value = dev.spec || '';
+                    document.getElementById('devManufacturer').value = dev.manufacturer || '';
+                    document.getElementById('devGrade').value = dev.grade || '';
+                    document.getElementById('devPurchaseDate').value = dev.purchase_date || '';
+                    document.getElementById('devFinalDate').value = dev.final_inspection_date || '';
+                    document.getElementById('devDept').value = dev.dept || '';
+                    document.getElementById('devLocation').value = dev.location || '';
+                }
+            } else {
+                // 鏂板妯″紡
+                title.textContent = "娣诲姞鏂拌澶囪祫浜?;
+                idInput.value = "";
+                document.querySelectorAll('input[name="dev-template-check"]').forEach(cb => cb.checked = false);
+                document.querySelectorAll('input[name="dev-mplan-check"]').forEach(cb => cb.checked = false);
+                // 榛樿状态佽涓鸿繍琛屼腑
+                document.getElementById('devStatus').value = '杩愯涓?;
+                document.getElementById('devInspector').value = '';
+                document.getElementById('devMaintenanceLeaderId').value = '';
+            }
+
+            deviceModal.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                deviceModal.classList.remove('opacity-0');
+                deviceModalCard.classList.remove('scale-95');
+                deviceModalCard.classList.add('scale-100');
+            });
+        }
+
+        function closeDeviceModal() {
+            deviceModal.classList.add('opacity-0');
+            deviceModalCard.classList.remove('scale-100');
+            deviceModalCard.classList.add('scale-95');
+            setTimeout(() => {
+                deviceModal.classList.add('hidden');
+            }, 300);
+        }
+
+        async function saveDevice() {
+            const id = document.getElementById('editDeviceId').value;
+            const payload = {
+                name: document.getElementById('devName').value,
+                sn: document.getElementById('devSn').value,
+                status: document.getElementById('devStatus').value,
+                template_ids: Array.from(document.querySelectorAll('input[name="dev-template-check"]:checked')).map(cb => parseInt(cb.value)),
+                maintenance_plan_ids: Array.from(document.querySelectorAll('input[name="dev-mplan-check"]:checked')).map(cb => parseInt(cb.value)),
+                inspector_id: document.getElementById('devInspector').value || null,
+                maintenance_leader_id: document.getElementById('devMaintenanceLeaderId').value || null,
+                asset_no: document.getElementById('devAssetNo').value,
+                spec: document.getElementById('devSpec').value,
+                manufacturer: document.getElementById('devManufacturer').value,
+                grade: document.getElementById('devGrade').value,
+                purchase_date: document.getElementById('devPurchaseDate').value,
+                final_inspection_date: document.getElementById('devFinalDate').value,
+                dept: document.getElementById('devDept').value,
+                location: document.getElementById('devLocation').value,
+                maintenance_leader: (() => {
+                    const sel = document.getElementById('devMaintenanceLeaderId');
+                    return (sel && sel.selectedIndex > 0) ? sel.options[sel.selectedIndex].text.split(' (')[0] : null;
+                })()
+            };
+
+            const url = id ? `/devices/${id}` : '/devices/';
+            const method = id ? 'PUT' : 'POST';
+
+            try {
+                const res = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || '保存失败');
+                }
+
+                closeDeviceModal();
+                fetchDevices(); // 淇濆瓨鎴愬姛鍚庝富鍔ㄥ埛鏂板ぇ鐩樿〃鏍?
+            } catch (err) {
+                alert("淇濆瓨鏁版嵁寮傚父: " + err.message);
+            }
+        }
+
+        async function deleteDevice(id) {
+            if (!confirm('鎮ㄧ‘瀹氳姘镐箙鍒犻櫎璇ヨ澶囧強鍏宠仈鐨勬墍鏈夋鏌ヨ褰曞悧锛焅n[娉ㄦ剰] 操作鏃犳硶鎾ら攢锛?)) return;
+
+            try {
+                const res = await fetch(`/devices/${id}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error('缃戠粶璇锋眰琚嫆缁濓紝删除失败銆?);
+
+                fetchDevices(); // 鍒锋柊琛ㄦ牸
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        // ==== Boot ====
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchDevices();
+            fetchTemplates();
+            fetchMaintenancePlans();
+            fetchSystemLogs();
+            initChart();
+            fetchUsersList();
+        });
+
+
+        // ==== 维护计划 (Maintenance) API 瀵规帴 ====
+        async function fetchMaintenancePlans() {
+            try {
+                const res = await fetch('/maintenance/');
+                if (res.ok) {
+                    maintenanceDataList = await res.json();
+                    renderMaintenanceTable(maintenanceDataList);
+                    populateMaintenanceOptions(maintenanceDataList);
+                }
+            } catch (error) {
+                console.error('鑾峰彇维护计划澶辫触:', error);
+            }
+        }
+
+        function renderMaintenanceTable(plans) {
+            const tbody = document.getElementById('maintenancePlanTableBody');
+            tbody.innerHTML = '';
+
+            if (plans.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-500">暂无维护计划璁板綍</td></tr>`;
+                return;
+            }
+
+            plans.forEach(tpl => {
+                const itemsHtml = tpl.items.map(item =>
+                    `<span class="inline-block px-2 py-0.5 bg-emerald-50 border border-emerald-100 rounded text-xs text-emerald-700 mb-1 mr-1">${item}</span>`
+                ).join('');
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50/80 transition-colors group";
+                tr.innerHTML = `
+                    <td class="p-4 border-b border-slate-100 text-center font-bold text-slate-400">#${tpl.id}</td>
+                    <td class="p-4 border-b border-slate-100 font-bold text-slate-700">${tpl.name}</td>
+                    <td class="p-4 border-b border-slate-100">
+                        ${itemsHtml}
+                    </td>
+                    <td class="p-4 border-b border-slate-100">
+                        <span class="font-mono text-emerald-600 bg-emerald-50 px-2 py-1 rounded font-bold">${tpl.period_months || 1} 涓湀</span>
+                    </td>
+                    <td class="p-4 border-b border-slate-100 text-right">
+                        <div class="flex items-center justify-end space-x-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                            <button onclick="openMaintenanceModal(${tpl.id})" class="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors" title="修改计划">
+                                <i data-lucide="edit-3" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="deleteMaintenancePlan(${tpl.id})" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="删除计划">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            lucide.createIcons();
+        }
+
+        function openMaintenanceModal(id = null) {
+            const modal = document.getElementById('maintenanceModal');
+            const card = document.getElementById('maintenanceModalCard');
+            const editIdInput = document.getElementById('editMaintenanceId');
+
+            if (id) {
+                const tpl = maintenanceDataList.find(t => t.id === id);
+                if (tpl) {
+                    editIdInput.value = tpl.id;
+                    document.getElementById('maintenanceName').value = tpl.name;
+                    document.getElementById('maintenancePeriodMonths').value = tpl.period_months || 1;
+                    document.getElementById('maintenancePushDay').value = tpl.push_day || 1;
+                    document.getElementById('maintenancePushTime').value = tpl.push_time || '08:30';
+                    document.getElementById('maintenanceItems').value = tpl.items.join('\n');
+                    document.getElementById('maintenanceModalTitle').textContent = '编辑维护计划';
+                }
+            } else {
+                editIdInput.value = '';
+                document.getElementById('maintenanceForm').reset();
+                document.getElementById('maintenanceModalTitle').textContent = '鏂板维护计划';
+            }
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                card.classList.remove('scale-95');
+                card.classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeMaintenanceModal() {
+            const modal = document.getElementById('maintenanceModal');
+            const card = document.getElementById('maintenanceModalCard');
+            modal.classList.add('opacity-0');
+            card.classList.remove('scale-100');
+            card.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        async function saveMaintenancePlan() {
+            const id = document.getElementById('editMaintenanceId').value;
+            const payload = {
+                name: document.getElementById('maintenanceName').value.trim(),
+                period_months: parseInt(document.getElementById('maintenancePeriodMonths').value),
+                push_day: parseInt(document.getElementById('maintenancePushDay').value),
+                push_time: document.getElementById('maintenancePushTime').value,
+                items: document.getElementById('maintenanceItems').value.split(/\r?\n/).map(i => i.trim()).filter(i => i)
+            };
+
+            if (!payload.name || isNaN(payload.period_months) || isNaN(payload.push_day) || payload.items.length === 0) {
+                alert("璇峰～鍐欐墍鏈夌殑蹇呭～椤癸紒(鍚嶇О/周期/鏃ユ湡/鍐呭涓嶅厑璁镐负绌?");
+                return;
+            }
+
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? '/maintenance/' + id : '/maintenance/';
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (response.ok) {
+                    closeMaintenanceModal();
+                    fetchMaintenancePlans();
+                } else {
+                    alert("保存失败");
+                }
+            } catch (err) { }
+        }
+
+        async function deleteMaintenancePlan(id) {
+            if (!confirm('确定删除该维护计划吗？)) return;
+            try {
+                const response = await fetch('/maintenance/' + id, { method: 'DELETE' });
+                if (response.ok) {
+                    fetchMaintenancePlans();
+                } else {
+                    alert("删除失败");
+                }
+            } catch (err) { }
+        }
+
+        // ==== 10. 检查日志?Logs) API 瀵规帴 ====
+        // ==== 7. 系统日志 (System Log) API 瀵规帴 ====
+        async function fetchSystemLogs() {
+            try {
+                const res = await fetch('/logs/');
+                if (res.ok) {
+                    const logs = await res.json();
+                    renderSystemLogs(logs);
+                }
+            } catch (err) {
+                console.error("加载系统日志失败:", err);
+            }
+        }
+
+        function renderSystemLogs(logs) {
+            const tbody = document.getElementById('logTableBody');
+            tbody.innerHTML = '';
+
+            if (!logs || logs.length === 0) {
+                tbody.innerHTML = `<tr><td class="p-8 text-center text-slate-400">暂无任何系统流水日志</td></tr>`;
+                return;
+            }
+
+            logs.forEach(log => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition-colors border-b border-slate-100";
+
+                // 类型颜色映射
+                const typeColors = {
+                    '检查: 'bg-purple-100 text-purple-600',
+                    '报修': 'bg-red-100 text-red-600',
+                    '派单': 'bg-amber-100 text-amber-600',
+                    '完工': 'bg-emerald-100 text-emerald-600'
+                };
+                const colorClass = typeColors[log.event_type] || 'bg-slate-100 text-slate-600';
+
+                const timeStr = new Date(log.created_at + 'Z').toLocaleString('zh-CN', { hour12: false });
+                const deviceName = log.device ? log.device.name : '未知设备';
+
+                tr.innerHTML = `
+                    <td class="p-5">
+                        <div class="flex items-start">
+                            <div class="mr-4 text-slate-400 font-mono text-xs mt-1 whitespace-nowrap">${timeStr}</div>
+                            <div class="flex-1">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase mr-2 ${colorClass}">${log.event_type}</span>
+                                <span class="text-sm font-bold text-slate-700 mr-2">${deviceName}</span>
+                                <span class="text-sm text-slate-600 leading-relaxed">${log.content}</span>
+                            </div>
+                            <div class="ml-4 flex items-center text-xs font-bold text-slate-400 whitespace-nowrap">
+                                <i data-lucide="user" class="w-3 h-3 mr-1"></i>
+                                ${log.operator}
+                            </div>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            lucide.createIcons();
+        }
+
+        // ==== 8. 检查计划?Templates) API 瀵规帴 ====
+        let templateDataList = [];
+
+        async function fetchTemplates() {
+            try {
+                const res = await fetch('/templates/');
+                if (res.ok) {
+                    templateDataList = await res.json();
+                    renderTemplatesTable(templateDataList);
+                    populateTemplateOptions(templateDataList);
+                }
+            } catch (error) {
+                console.error('获取模板失败:', error);
+            }
+        }
+
+        function populateTemplateOptions(templates) {
+            const container = document.getElementById('devTemplateContainer');
+            if (!container) return;
+            container.innerHTML = '';
+
+            if (templates.length === 0) {
+                container.innerHTML = '<p class="text-xs text-slate-400 italic p-2">暂无可用的计划模板</p>';
+                return;
+            }
+
+            templates.forEach(tpl => {
+                const div = document.createElement('label');
+                div.className = "flex items-center p-2.5 bg-white border border-slate-200 rounded-lg cursor-pointer hover:border-brand-300 hover:shadow-sm transition-all group";
+                div.innerHTML = `
+                    <input type="checkbox" name="dev-template-check" value="${tpl.id}" class="w-4 h-4 text-brand-600 border-slate-300 rounded focus:ring-brand-500 mr-2.5 cursor-pointer">
+                    <div class="flex-1">
+                        <p class="text-sm font-bold text-slate-700 group-hover:text-brand-700 transition-colors">${tpl.name}</p>
+                        <p class="text-[10px] text-slate-400 font-mono">周期: ${tpl.period_hours}H</p>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function populateMaintenanceOptions(plans) {
+            const container = document.getElementById('devMaintenancePlanContainer');
+            if (!container) return;
+            container.innerHTML = '';
+            if (plans.length === 0) {
+                container.innerHTML = '<p class="text-xs text-slate-400 italic p-2">暂无可用的维护计划</p>';
+                return;
+            }
+            plans.forEach(tpl => {
+                const div = document.createElement('label');
+                div.className = "flex items-center p-2 bg-white border border-slate-200 rounded-lg cursor-pointer hover:border-emerald-300 transition-all group";
+                div.innerHTML = `
+                    <input type="checkbox" name="dev-mplan-check" value="${tpl.id}" class="w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500 mr-2.5 cursor-pointer">
+                    <div class="flex-1">
+                        <p class="text-[12px] font-bold text-slate-700">${tpl.name}</p>
+                        <p class="text-[9px] text-slate-400 font-mono">周期: ${tpl.period_hours}H</p>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function renderTemplatesTable(templates) {
+            const tbody = document.getElementById('planTableBody');
+            tbody.innerHTML = '';
+
+            if (templates.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-500">暂无任何检查计划记录/td></tr>`;
+                return;
+            }
+
+            templates.forEach(tpl => {
+                const itemsHtml = tpl.items.map(item =>
+                    `<span class="inline-block px-2 py-0.5 bg-slate-100 border border-slate-200 rounded text-xs text-slate-600 mb-1 mr-1">${item}</span>`
+                ).join('');
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50/80 transition-colors group";
+                tr.innerHTML = `
+                    <td class="p-4 border-b border-slate-100 text-center font-bold text-slate-400">#${tpl.id}</td>
+                    <td class="p-4 border-b border-slate-100 font-bold text-slate-700">${tpl.name}</td>
+                    <td class="p-4 border-b border-slate-100 pt-5">${itemsHtml}</td>
+                    <td class="p-4 border-b border-slate-100">
+                        <span class="font-mono text-orange-600 bg-orange-50 px-2 py-1 rounded font-bold">${tpl.period_days || 1} 天/span>
+                    </td>
+                    <td class="p-4 border-b border-slate-100 text-right">
+                        <div class="flex items-center justify-end space-x-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                            <button onclick="openPlanModal(${tpl.id})" class="p-1.5 text-slate-400 hover:text-orange-600 hover:bg-brand-50 rounded transition-colors" title="修改计划">
+                                <i data-lucide="edit-3" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="deletePlan(${tpl.id})" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="删除计划">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            lucide.createIcons();
+        }
+
+        function openPlanModal(id = null) {
+            const modal = document.getElementById('planModal');
+            const card = document.getElementById('planModalCard');
+            const editIdInput = document.getElementById('editPlanId');
+
+            if (id) {
+                const tpl = templateDataList.find(t => t.id === id);
+                if (tpl) {
+                    editIdInput.value = tpl.id;
+                    document.getElementById('planName').value = tpl.name;
+                    document.getElementById('planPeriodDays').value = tpl.period_days || 1;
+                    document.getElementById('planPushTime').value = tpl.push_time || '08:00';
+                    document.getElementById('planItems').value = tpl.items.join('\n');
+                    document.getElementById('planModalTitle').textContent = '编辑检查计划?;
+                }
+            } else {
+                editIdInput.value = '';
+                document.getElementById('planForm').reset();
+                document.getElementById('planModalTitle').textContent = '鏂板检查计划?;
+            }
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                card.classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closePlanModal() {
+            const modal = document.getElementById('planModal');
+            const card = document.getElementById('planModalCard');
+            modal.classList.add('opacity-0');
+            card.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        async function savePlan() {
+            const id = document.getElementById('editPlanId').value;
+            const payload = {
+                name: document.getElementById('planName').value.trim(),
+                period_days: parseInt(document.getElementById('planPeriodDays').value),
+                push_time: document.getElementById('planPushTime').value,
+                items: document.getElementById('planItems').value.split(/\r?\n/).map(i => i.trim()).filter(i => i)
+            };
+
+            if (!payload.name || isNaN(payload.period_hours) || payload.items.length === 0) {
+                alert("璇峰～鍐欐墍鏈夌殑蹇呭～椤癸紒(鍚嶇О/周期/鍐呭涓嶅厑璁镐负绌?");
+                return;
+            }
+
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? '/templates/' + id : '/templates/';
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    closePlanModal();
+                    fetchTemplates(); // 閲嶅埛鏂?
+                } else {
+                    alert("保存失败");
+                }
+            } catch (err) { }
+        }
+
+        async function deletePlan(id) {
+            if (!confirm('确定删除该计划吗？（任何绑定该计划的设备将自动重置为未绑定状态）')) return;
+            try {
+                const response = await fetch('/templates/' + id, { method: 'DELETE' });
+                if (response.ok) {
+                    fetchTemplates();
+                } else {
+                    const data = await response.json();
+                    alert("删除失败: " + (data.detail || ""));
+                }
+            } catch (err) { }
+        }
+
+
+        // ==== 9. 人员鏋舵瀯 API 瀵规帴 ====
+        let userDataList = [];
+
+        async function fetchUsersList() {
+            try {
+                const res = await fetch('/users/');
+                if (res.ok) {
+                    userDataList = await res.json();
+                    renderUsersTable(userDataList);
+                    populateInspectorOptions(userDataList);
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        function populateInspectorOptions(users, targetId = null) {
+            const ids = targetId ? [targetId] : ['devInspector', 'devMaintenanceLeaderId'];
+
+            ids.forEach(id => {
+                const select = document.getElementById(id);
+                if (!select) return;
+
+                const currentVal = select.value;
+                select.innerHTML = '<option value="">-- 暂不绑定 / 解绑 --</option>';
+
+                // 寮哄埗淇濈暀当前閫変腑鐨勯」锛堝嵆浣胯鎼滅储杩囨护鎺夛紝涔熻淇濈暀鏄剧ず锛屽惁鍒?select 浼氶噸缃級
+                if (currentVal && !users.some(u => u.id === currentVal)) {
+                    const existingUser = userDataList.find(u => u.id === currentVal);
+                    if (existingUser) {
+                        const opt = document.createElement('option');
+                        opt.value = existingUser.id;
+                        opt.textContent = `[当前] ${existingUser.name} (${existingUser.department ? existingUser.department.name : '无部门?})`;
+                        select.appendChild(opt);
+                    }
+                }
+
+                users.forEach(u => {
+                    const depName = u.department ? u.department.name : '无部门?;
+                    const opt = document.createElement('option');
+                    opt.value = u.id;
+                    opt.textContent = `${u.name} (${depName})`;
+                    select.appendChild(opt);
+                });
+                select.value = currentVal;
+            });
+        }
+
+        // 人员妯＄硦鎼滅储閫昏緫
+        function filterUserOptions(selectId, keyword) {
+            if (!keyword || keyword.trim() === "") {
+                populateInspectorOptions(userDataList, selectId);
+                return;
+            }
+            const k = keyword.toLowerCase();
+            const filtered = userDataList.filter(u =>
+                u.name.toLowerCase().includes(k) ||
+                (u.department && u.department.name.toLowerCase().includes(k)) ||
+                u.id.toLowerCase().includes(k)
+            );
+            populateInspectorOptions(filtered, selectId);
+        }
+
+        function renderUsersTable(users) {
+            const tbody = document.getElementById('userTableBody');
+            tbody.innerHTML = '';
+
+            const total = users.length;
+            const info = document.getElementById('user-table-info');
+            if (info) info.textContent = `鍏?${total} 条数据甡;
+
+            if (total === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-slate-500">暂无人员，请点击同步企微或钉钉数据/td></tr>`;
+                renderPagination(0, 'user-pagination', null, 1);
+                return;
+            }
+
+            const start = (userCurrentPage - 1) * pageSize;
+            const end = start + pageSize;
+            const pagedData = users.slice(start, end);
+
+            if (pagedData.length === 0 && total > 0) {
+                userCurrentPage = 1;
+                renderUsersTable(users);
+                return;
+            }
+
+            renderPagination(total, 'user-pagination', (p) => {
+                userCurrentPage = p;
+                renderUsersTable(users);
+                window.scrollTo({ top: document.getElementById('personnel-table').offsetTop - 20, behavior: 'smooth' });
+            }, userCurrentPage);
+
+            pagedData.forEach(u => {
+                const depName = u.department ? u.department.name : '未分配?;
+                const avatar = u.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${u.name}`;
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50/80 transition-colors";
+                tr.innerHTML = `
+                    <td class="p-4 border-b border-slate-100 flex items-center">
+                        <img src="${avatar}" class="w-9 h-9 rounded-full mr-3 border shadow-sm">
+                        <div>
+                            <p class="font-bold text-slate-800">${u.name}</p>
+                            <p class="text-xs text-slate-400 font-mono">${u.id}</p>
+                        </div>
+                    </td>
+                    <td class="p-4 border-b border-slate-100">
+                        <span class="px-2.5 py-1 text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200 rounded-md">
+                            ${depName}
+                        </span>
+                    </td>
+                    <td class="p-4 border-b border-slate-100 text-sm font-medium text-slate-600">${u.job_title || '员工'}</td>
+                    <td class="p-4 border-b border-slate-100">
+                        <span class="inline-flex items-center text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 border border-emerald-100 rounded">
+                            已激活?
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function handleUserSearch() {
+            const keyword = (document.getElementById('userSearchInput').value || '').trim().toLowerCase();
+            if (!keyword) {
+                renderUsersTable(userDataList);
+                return;
+            }
+            const filtered = userDataList.filter(u =>
+                (u.name && u.name.toLowerCase().includes(keyword)) ||
+                (u.id && u.id.toLowerCase().includes(keyword))
+            );
+            renderUsersTable(filtered);
+        }
+
+        async function syncDingTalk() {
+            const icon = document.getElementById('icon-sync');
+            const btn = document.getElementById('btn-sync');
+
+            // UI Loading state
+            icon.classList.add('animate-spin');
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            try {
+                const res = await fetch('/dingtalk/sync', { method: 'POST' });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || "同步失败");
+                }
+                const resData = await res.json();
+
+                alert(`✅ ${resData.message}\n鎷夊彇鍒?${resData.dept_count} 个部门，${resData.user_count} 位人员榒);
+                fetchUsersList(); // 閲嶆柊鎷夊彇灞曠ず
+
+            } catch (error) {
+                alert("钉钉 API 连接或鉴权失败ワ細\n" + error.message);
+            } finally {
+                icon.classList.remove('animate-spin');
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        async function importDevices() {
+            // 鍒涘缓骞惰Е鍙戜竴涓殣钘忕殑鏂囦欢杈撳叆妗?
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.xlsx, .xls';
+            fileInput.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                if (!confirm(`确定导入文件 "${file.name}" 吗？\n系统将自动匹配设备编号并更新或新增。俙)) return;
+
+                const btn = document.getElementById('btn-import');
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> <span>同步中?..</span>';
+                lucide.createIcons();
+
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    const res = await fetch('/devices/import', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await res.json();
+                    if (res.ok) {
+                        alert('✅ ' + data.message);
+                        fetchDevices();
+                    } else {
+                        alert('❌ 导入失败: ' + (data.detail || '未知错误'));
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('❌ 网络请求失败');
+                } finally {
+                    btn.innerHTML = originalHtml;
+                    lucide.createIcons();
+                }
+            };
+            fileInput.click();
+        }
+
+    </script>
+</body>
+
+</html>

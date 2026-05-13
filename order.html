@@ -3,265 +3,227 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>维修工单详情 - 设备管理中心</title>
-    <!-- Offline Assets -->
+    <!-- Assets -->
     <script src="/static/js/tailwind.min.js"></script>
-    <style>
-        body {
-            background-color: #0f172a;
-            color: #f8fafc;
-            font-family: system-ui, sans-serif;
+    <script src="/static/js/lucide.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            600: '#2563eb',
+                        },
+                        surface: '#f8fafc',
+                    }
+                }
+            }
         }
+    </script>
+    <style>
+        body { background-color: #f1f5f9; color: #0f172a; -webkit-tap-highlight-color: transparent; }
+        
+        .ui-label {
+            font-size: 14px; font-weight: 900; color: #2563eb; text-transform: uppercase;
+            letter-spacing: 0.05em; margin-bottom: 4px; display: block;
+        }
+
+        .ui-content {
+            font-size: 14px; font-weight: 700; color: #0f172a;
+        }
+
+        .ui-input {
+            width: 100%; background-color: white; border: 1px solid #e2e8f0; border-radius: 16px;
+            padding: 16px; font-size: 14px; font-weight: 700; color: #0f172a; outline: none; transition: all 0.2s;
+        }
+        .ui-input:focus { border-color: #2563eb; box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1); }
+
+        .ui-button-primary {
+            width: 100%; background-color: #2563eb; color: white; font-size: 17px; font-weight: 900;
+            padding: 20px; border-radius: 20px; transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+            gap: 8px; box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2);
+        }
+        .ui-button-primary:active { transform: scale(0.98); }
+
+        .status-badge { @apply px-4 py-1 rounded-lg text-[14px] font-black border shadow-sm; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .safe-area-inset-bottom { padding-bottom: env(safe-area-inset-bottom); }
     </style>
 </head>
 
-<body class="min-h-screen py-8 px-4">
-    <div class="max-w-xl mx-auto bg-slate-800 rounded-3xl shadow-2xl overflow-hidden border border-slate-700">
-        <div id="loading" class="p-12 text-center text-slate-400">正在拉取工单状态...</div>
+<body class="font-sans antialiased">
+    <div class="max-w-md mx-auto min-h-screen bg-surface flex flex-col shadow-xl relative pb-32">
+        
+        <!-- Header -->
+        <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-100 px-5 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <button onclick="history.back()" class="p-2 -ml-2 text-slate-900">
+                    <i data-lucide="chevron-left" class="w-6 h-6"></i>
+                </button>
+                <h1 class="text-[17px] font-black text-slate-900 tracking-tight">工单执行详情</h1>
+            </div>
+            <div id="orderStatusBadge" class="status-badge">--</div>
+        </header>
 
-        <div id="content" class="hidden">
-            <header class="p-6 border-b border-slate-700 bg-slate-800/50 flex justify-between items-center">
-                <h1 class="text-xl font-bold text-white tracking-widest">工单详情</h1>
-                <span id="orderStatus" class="px-4 py-1.5 text-sm font-black rounded-full shadow-sm">--</span>
-            </header>
+        <div id="loading" class="flex-1 flex flex-col items-center justify-center p-20 text-slate-900">
+            <div class="w-8 h-8 border-4 border-slate-200 border-t-brand-600 rounded-full animate-spin mb-4"></div>
+            <p class="text-[14px] font-black uppercase tracking-widest">调取工单中...</p>
+        </div>
 
-            <div class="p-6 space-y-6">
-                <!-- 模块：报修基础背景 -->
-                <div class="bg-slate-900/40 rounded-2xl border border-slate-700/50 p-5 space-y-6">
-                    <div class="grid grid-cols-2 gap-y-6 gap-x-4">
-                        <!-- 第一行 -->
-                        <div class="col-span-1">
-                            <p
-                                class="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1 items-center flex">
-                                <span class="w-1.5 h-1.5 rounded-full bg-blue-500 mr-1.5"></span>所属设备
-                            </p>
-                            <p id="deviceName" class="text-lg font-bold text-white">--</p>
-                        </div>
-                        <div class="col-span-1">
-                            <p
-                                class="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1 items-center flex">
-                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5"></span>负责部门
-                            </p>
-                            <p id="deptName" class="text-lg font-bold text-amber-400">--</p>
-                        </div>
-                        <!-- 第二行 -->
-                        <div class="col-span-1">
-                            <p
-                                class="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1 items-center flex">
-                                <span class="w-1.5 h-1.5 rounded-full bg-purple-500 mr-1.5"></span>报修人
-                            </p>
-                            <p id="reporterName" class="text-lg font-bold text-white">--</p>
-                        </div>
-                        <div class="col-span-1">
-                            <p
-                                class="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1 items-center flex">
-                                <span class="w-1.5 h-1.5 rounded-full bg-slate-500 mr-1.5"></span>报修时间
-                            </p>
-                            <p id="orderTime" class="text-sm font-mono text-slate-400">--</p>
-                        </div>
+        <div id="content" class="hidden flex-1 flex flex-col">
+            <!-- Order Details (Single Column) -->
+            <div class="px-5 pt-6 space-y-6">
+                <div class="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm space-y-6">
+                    <div>
+                        <span class="ui-label">所属设备资产</span>
+                        <p id="deviceName" class="ui-content text-[17px] font-black">--</p>
                     </div>
-
-                    <!-- 故障描述 - 全宽 -->
-                    <div class="pt-4 border-t border-slate-800/60">
-                        <p
-                            class="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-2 flex items-center">
-                            <span class="w-1.5 h-1.5 rounded-full bg-red-500 mr-1.5"></span>故障现象描述
-                        </p>
-                        <div id="description"
-                            class="text-base text-slate-300 leading-relaxed bg-slate-950/40 p-4 rounded-xl border border-slate-800/80">
-                            --</div>
+                    <div>
+                        <span class="ui-label">归属负责部门</span>
+                        <p id="deptName" class="ui-content">--</p>
                     </div>
-                </div>
-
-                <hr class="border-slate-700">
-
-                <!-- 班长派单区 (仅在 待处理 状态显示) -->
-                <div id="dispatchSection" class="hidden space-y-4">
-                    <h3 class="text-amber-400 font-black text-xl flex items-center">
-                        <span class="mr-2">⏬</span> 班长派单
-                    </h3>
-                    <div class="bg-amber-400/5 p-6 rounded-2xl border border-amber-400/20">
-                        <label class="block text-amber-400 text-sm font-bold mb-2">选择维修执行人</label>
-                        <div class="relative">
-                            <input type="text" id="repairmanSearch" autocomplete="off"
-                                class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-4 text-white text-lg focus:ring-2 focus:ring-amber-500 outline-none mb-2"
-                                placeholder="输入姓名搜索维修人员...">
-                            <ul id="repairmanList"
-                                class="hidden absolute top-full left-0 right-0 bg-slate-900 border border-slate-700 rounded-xl mt-1 z-50 max-h-48 overflow-y-auto shadow-2xl">
-                                <!-- 动态列表 -->
-                            </ul>
-                            <input type="hidden" id="repairmanSelect" required>
-                        </div>
-                        <button onclick="dispatchOrder()"
-                            class="w-full bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-black text-2xl py-6 rounded-2xl transition-all shadow-lg flex justify-center items-center">
-                            🛠️ 确认并派发任务
-                        </button>
+                    <div>
+                        <span class="ui-label">报修登记人员</span>
+                        <p id="reporterName" class="ui-content flex items-center gap-2">--</p>
                     </div>
-                </div>
-
-                <!-- 维修完工区 (仅在 维修中 状态显示) -->
-                <div id="completeSection" class="hidden space-y-4">
-                    <h3 class="text-emerald-400 font-black text-xl flex items-center">
-                        <span class="mr-2">🧰</span> 维修结果提交
-                    </h3>
-                    <div class="bg-emerald-400/5 p-6 rounded-2xl border border-emerald-400/20">
-                        <label class="block text-emerald-400 text-sm font-bold mb-2">维修记录 (选填)</label>
-                        <textarea id="repairNotes" rows="3"
-                            class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white text-md focus:ring-2 focus:ring-emerald-500 outline-none mb-4 placeholder-slate-600"
-                            placeholder="请简要描述维修过程或更换的配件..."></textarea>
-
-                        <button onclick="completeOrder()"
-                            class="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black text-2xl py-6 rounded-2xl transition-all shadow-lg flex justify-center items-center">
-                            ✅ 维修完成提交
-                        </button>
+                    <div>
+                        <span class="ui-label">系统记录时间</span>
+                        <p id="orderTime" class="ui-content font-mono">--</p>
                     </div>
-                </div>
-
-                <!-- 已完工状态展示 -->
-                <div id="finishSection" class="hidden p-12 text-center text-slate-500 bg-slate-900 rounded-2xl italic">
-                    🎉 该工单已完成处理，设备目前运行正常。
+                    <div class="pt-5 border-t border-slate-50">
+                        <span class="ui-label">故障现象描述</span>
+                        <div id="description" class="ui-content bg-slate-50 p-5 rounded-2xl border border-slate-100">--</div>
+                    </div>
                 </div>
             </div>
+
+            <!-- Dispatch (Single Column) -->
+            <div id="dispatchSection" class="hidden px-5 pt-8 space-y-4">
+                <span class="ui-label">指派处理</span>
+                <div class="bg-white rounded-3xl border border-brand-100 p-6 shadow-sm space-y-5">
+                    <p class="text-[14px] font-black text-slate-900">请选择负责的技术人员：</p>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                            <i data-lucide="search" class="w-5 h-5 text-brand-600"></i>
+                        </div>
+                        <input type="text" id="repairmanSearch" autocomplete="off" class="ui-input pl-12" placeholder="输入姓名搜索...">
+                        <ul id="repairmanList" class="hidden absolute top-full left-0 right-0 bg-white border border-slate-100 rounded-2xl mt-2 z-50 max-h-56 overflow-y-auto shadow-2xl no-scrollbar"></ul>
+                    </div>
+                    <input type="hidden" id="repairmanSelect" required>
+                </div>
+            </div>
+
+            <!-- Complete (Single Column) -->
+            <div id="completeSection" class="hidden px-5 pt-8 space-y-4">
+                <span class="ui-label">结果回填</span>
+                <div class="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm space-y-5">
+                    <div>
+                        <p class="text-[14px] font-black text-slate-900 mb-2">维修过程记录 (选填)</p>
+                        <textarea id="repairNotes" rows="4" class="ui-input resize-none" placeholder="描述维修过程或配件更换..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Finished -->
+            <div id="finishSection" class="hidden px-5 pt-8">
+                <div class="bg-brand-50 rounded-3xl p-10 text-center flex flex-col items-center border border-brand-100">
+                    <i data-lucide="check-circle-2" class="w-12 h-12 text-brand-600 mb-4"></i>
+                    <h3 class="text-[17px] font-black text-slate-900">工单已成功关闭</h3>
+                    <p class="text-slate-900 text-[14px] font-medium mt-1">维修任务已完成，设备运行正常。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fixed Action Footer -->
+        <div id="actionFooter" class="hidden fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/95 backdrop-blur-xl border-t border-slate-100 p-5 z-40">
+            <button id="btnDispatch" onclick="dispatchOrder()" class="hidden ui-button-primary">
+                <i data-lucide="send" class="w-6 h-6"></i>
+                确认派发工单
+            </button>
+            <button id="btnComplete" onclick="completeOrder()" class="hidden ui-button-primary">
+                <i data-lucide="check-circle-2" class="w-6 h-6"></i>
+                提交完工
+            </button>
         </div>
     </div>
 
     <script>
         const API_BASE_URL = window.location.origin;
         const orderId = window.location.pathname.split('/').pop();
+        let usersList = [];
+        function initIcons() { if (typeof lucide !== 'undefined') lucide.createIcons(); }
 
         async function fetchDetail() {
             try {
                 const res = await fetch(`${API_BASE_URL}/orders/${orderId}`);
-                if (!res.ok) {
-                    alert("工单不存在或已删除");
-                    return;
-                }
-                const order = await res.json();
-                renderDetail(order);
-            } catch (err) {
-                console.error(err);
-                alert("加载工单失败");
-            }
+                const order = await res.json(); renderDetail(order);
+            } catch (err) { alert("获取工单异常"); }
         }
+        async function fetchUsers() { try { const res = await fetch(`${API_BASE_URL}/users/`); usersList = await res.json(); } catch (e) {} }
 
-        let usersList = [];
         const searchInput = document.getElementById('repairmanSearch');
         const searchList = document.getElementById('repairmanList');
         const hiddenIdInput = document.getElementById('repairmanSelect');
-
-        async function fetchUsers() {
-            try {
-                const res = await fetch(`${API_BASE_URL}/users/`);
-                usersList = await res.json();
-            } catch (err) { }
-        }
-
-        // 搜索逻辑
         searchInput.oninput = (e) => {
             const kw = e.target.value.trim().toLowerCase();
             if (!kw) { searchList.classList.add('hidden'); return; }
             const matches = usersList.filter(u => u.name.toLowerCase().includes(kw));
             if (matches.length > 0) {
-                searchList.innerHTML = matches.map(u => `<li onclick="selectUser('${u.id}', '${u.name}')" class="p-4 hover:bg-slate-700 border-b border-slate-800 cursor-pointer text-slate-200">
-                    <span class="font-bold">${u.name}</span>
-                    <span class="block text-xs text-slate-500">${u.id}</span>
-                </li>`).join('');
-                searchList.classList.remove('hidden');
-            } else {
-                searchList.classList.add('hidden');
-            }
+                searchList.innerHTML = matches.map(u => `<li onclick="selectUser('${u.id}', '${u.name}')" class="p-4 hover:bg-slate-50 border-b border-slate-50 cursor-pointer flex items-center justify-between group"><span class="font-black text-slate-900 group-hover:text-brand-600">${u.name}</span><i data-lucide="plus" class="w-4 h-4 text-brand-600"></i></li>`).join('');
+                searchList.classList.remove('hidden'); initIcons();
+            } else { searchList.classList.add('hidden'); }
         };
-
-        function selectUser(id, name) {
-            hiddenIdInput.value = id;
-            searchInput.value = name;
-            searchList.classList.add('hidden');
-        }
-
-        document.onclick = (e) => {
-            if (e.target !== searchInput) searchList.classList.add('hidden');
-        };
+        function selectUser(id, name) { hiddenIdInput.value = id; searchInput.value = name; searchList.classList.add('hidden'); }
 
         function renderDetail(order) {
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('content').classList.remove('hidden');
-
-            document.getElementById('deviceName').textContent = order.device ? order.device.name : '未知设备';
-            document.getElementById('deptName').textContent = (order.device && order.device.dept) ? order.device.dept : '未分类';
-            document.getElementById('reporterName').textContent = order.reporter ? order.reporter.name : '匿名报修';
-
-            // 格式化时间内容
-            if (order.created_at) {
-                const dt = new Date(order.created_at + 'Z');
-                document.getElementById('orderTime').textContent = dt.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-            }
-
+            document.getElementById('deviceName').textContent = order.device ? order.device.name : '--';
+            document.getElementById('deptName').textContent = (order.device && order.device.dept) ? order.device.dept : '--';
+            document.getElementById('reporterName').textContent = order.reporter ? order.reporter.name : '--';
+            if (order.created_at) { const dt = new Date(order.created_at + 'Z'); document.getElementById('orderTime').textContent = dt.toLocaleString('zh-CN'); }
             document.getElementById('description').textContent = order.description;
+            const badge = document.getElementById('orderStatusBadge'); badge.textContent = order.status;
+            const footer = document.getElementById('actionFooter');
+            const btnDispatch = document.getElementById('btnDispatch');
+            const btnComplete = document.getElementById('btnComplete');
 
-            const statusEl = document.getElementById('orderStatus');
-            statusEl.textContent = order.status;
-
-            // 样式处理
-            if (order.status === '待处理') {
-                statusEl.className += " bg-red-600/20 text-red-400 border border-red-500/50";
+            if (order.status === '待处理') { 
+                badge.className += " bg-red-50 text-red-600 border-red-100"; 
                 document.getElementById('dispatchSection').classList.remove('hidden');
-            } else if (order.status === '维修中') {
-                statusEl.className += " bg-amber-600/20 text-amber-400 border border-amber-500/50";
-                document.getElementById('completeSection').classList.remove('hidden');
-            } else if (order.status === '已完成') {
-                statusEl.className += " bg-emerald-600/20 text-emerald-400 border border-emerald-500/50";
-                document.getElementById('finishSection').classList.remove('hidden');
+                footer.classList.remove('hidden');
+                btnDispatch.classList.remove('hidden');
             }
+            else if (order.status === '维修中') { 
+                badge.className += " bg-amber-50 text-amber-600 border-amber-100"; 
+                document.getElementById('completeSection').classList.remove('hidden'); 
+                footer.classList.remove('hidden');
+                btnComplete.classList.remove('hidden');
+            }
+            else if (order.status === '已完成') { 
+                badge.className += " bg-brand-50 text-brand-600 border-brand-100"; 
+                document.getElementById('finishSection').classList.remove('hidden'); 
+            }
+            initIcons();
         }
 
         async function dispatchOrder() {
-            const repairmanId = document.getElementById('repairmanSelect').value;
-            if (!repairmanId) {
-                alert("请选择一名维修人员");
-                return;
-            }
-            try {
-                const res = await fetch(`${API_BASE_URL}/orders/${orderId}/dispatch`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ repairman_id: repairmanId })
-                });
-                if (res.ok) {
-                    alert("✅ 派单成功！已实时通知该技术员至现场处理。");
-                    location.reload();
-                } else {
-                    alert("派单失败");
-                }
-            } catch (err) {
-                alert("请求失败");
-            }
+            const rid = document.getElementById('repairmanSelect').value;
+            if (!rid) return alert("请选择人员");
+            try { const res = await fetch(`${API_BASE_URL}/orders/${orderId}/dispatch`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ repairman_id: rid }) }); if (res.ok) location.reload(); } catch (e) {}
         }
-
         async function completeOrder() {
-            const notes = document.getElementById('repairNotes').value;
-            if (!confirm("确认维修已完成，并将设备重新标识为正常状态？")) return;
-            try {
-                const res = await fetch(`${API_BASE_URL}/orders/${orderId}/complete`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ repair_notes: notes })
-                });
-                if (res.ok) {
-                    alert("✅ 维修结果已同步，设备已回归运行状态。");
-                    location.reload();
-                } else {
-                    alert("完工失败");
-                }
-            } catch (err) {
-                alert("请求失败");
-            }
+            if (!confirm("确认完工？")) return;
+            try { const res = await fetch(`${API_BASE_URL}/orders/${orderId}/complete`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ repair_notes: document.getElementById('repairNotes').value }) }); if (res.ok) location.reload(); } catch (e) {}
         }
-
-        window.onload = () => {
-            fetchDetail();
-            fetchUsers();
-        };
+        window.onload = () => { fetchDetail(); fetchUsers(); };
     </script>
 </body>
 
