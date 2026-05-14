@@ -7,273 +7,318 @@
     <title>系统鉴权 - 河北京车 设备管理</title>
     <style>
         :root {
-            --brand-50: #eff6ff;
-            --brand-100: #dbeafe;
             --brand-400: #60a5fa;
             --brand-500: #3b82f6;
             --brand-600: #2563eb;
             --brand-700: #1d4ed8;
             --slate-50: #f8fafc;
-            --slate-100: #f1f5f9;
             --slate-200: #e2e8f0;
-            --slate-300: #cbd5e1;
             --slate-400: #94a3b8;
-            --slate-500: #64748b;
             --slate-600: #475569;
-            --slate-700: #334155;
             --slate-800: #1e293b;
-            --white: #ffffff;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        * { margin: 0; padding: 0; box-sizing: border-box;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
 
         body {
-            background-color: var(--slate-50);
-            background-image:
-                radial-gradient(at 0% 0%, hsla(210, 100%, 93%, 1) 0, transparent 50%),
-                radial-gradient(at 100% 0%, hsla(210, 100%, 93%, 1) 0, transparent 50%),
-                radial-gradient(at 100% 100%, hsla(210, 100%, 93%, 1) 0, transparent 50%),
-                radial-gradient(at 0% 100%, hsla(210, 100%, 93%, 1) 0, transparent 50%);
+            background: #0f172a;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 1rem;
+            overflow: hidden;
+            position: relative;
         }
 
+        /* ── 视频背景层 ── */
+        .video-bg {
+            position: fixed; inset: 0; z-index: 0;
+            overflow: hidden;
+        }
+        .video-bg video {
+            position: absolute;
+            top: 50%; left: 50%;
+            min-width: 100%; min-height: 100%;
+            width: auto; height: auto;
+            transform: translate(-50%, -50%);
+            object-fit: cover;
+        }
+        /* 暗色遮罩层，增强卡片对比度 */
+        .video-overlay {
+            position: fixed; inset: 0; z-index: 1;
+            background: rgba(0, 0, 0, 0.45);
+            pointer-events: none;
+        }
+
+        /* ===== 核心：Glassmorphism 登录卡片 ===== */
         .login-container {
-            background: rgba(255, 255, 255, 0.85);
+            position: relative; z-index: 10;
+            background: rgba(255, 255, 255, 0.20);
             backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.4);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.25);
             border-radius: 2rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
-            width: 100%;
-            max-width: 440px;
+            box-shadow:
+                0 25px 60px -12px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            width: 100%; max-width: 440px;
             padding: 3rem 2.5rem;
-            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            opacity: 0;
+            animation: slideUp 2s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
+        }
+        /* 顶部高光线条 */
+        .login-container::before {
+            content: '';
+            position: absolute; top: 0; left: 10%; right: 10%; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+            border-radius: 1px;
         }
 
         @keyframes slideUp {
-            from {
-                transform: translateY(20px);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
+            from { transform: translateY(24px); opacity: 0; }
+            to   { transform: translateY(0); opacity: 1; }
         }
 
         .header {
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             margin-bottom: 2.5rem;
         }
 
         .logo-box {
-            width: 48px;
-            height: 48px;
+            width: 48px; height: 48px;
             background: linear-gradient(135deg, var(--brand-500), var(--brand-700));
             border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             margin-right: 12px;
-            box-shadow: 0 8px 16px -4px rgba(37, 99, 235, 0.3);
+            box-shadow: 0 8px 20px -4px rgba(37, 99, 235, 0.5);
             color: white;
         }
 
         .header h1 {
-            font-size: 1.5rem;
-            font-weight: 800;
-            color: var(--slate-800);
-            letter-spacing: -0.02em;
+            font-size: 1.5rem; font-weight: 800;
+            color: #fff; letter-spacing: -0.02em;
         }
+        .header h1 span { color: #ffffff; }
 
-        .header h1 span {
-            color: var(--brand-600);
-        }
+        .welcome-text { text-align: center; margin-bottom: 2rem; }
+        .welcome-text h2 { font-size: 1.25rem; color: #fff; margin-bottom: 0.25rem; }
+        .welcome-text p  { font-size: 0.875rem; color: rgba(255,255,255,0.5); letter-spacing: 0.05em; }
 
-        .welcome-text {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        .welcome-text h2 {
-            font-size: 1.25rem;
-            color: var(--slate-800);
-            margin-bottom: 0.25rem;
-        }
-
-        .welcome-text p {
-            font-size: 0.875rem;
-            color: var(--slate-400);
-            letter-spacing: 0.05em;
-        }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
+        .form-group { margin-bottom: 1.5rem; }
 
         .form-label {
-            display: block;
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: var(--slate-600);
-            margin-bottom: 0.5rem;
-            padding-left: 0.25rem;
+            display: block; font-size: 0.875rem; font-weight: 600;
+            color: rgba(255,255,255,0.7); margin-bottom: 0.5rem; padding-left: 0.25rem;
         }
 
-        .input-wrapper {
-            position: relative;
-        }
+        .input-wrapper { position: relative; }
 
         .input-icon {
-            position: absolute;
-            left: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--slate-400);
-            width: 20px;
-            height: 20px;
-            pointer-events: none;
+            position: absolute; left: 1rem; top: 50%; transform: translateY(-50%);
+            color: rgba(255,255,255,0.4); width: 20px; height: 20px; pointer-events: none;
         }
 
+        /* 输入框也使用毛玻璃 */
         .form-input {
             width: 100%;
             padding: 0.875rem 1rem 0.875rem 3rem;
-            background: var(--slate-50);
-            border: 1px solid var(--slate-200);
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 1rem;
             font-size: 1rem;
-            color: var(--slate-800);
-            transition: all 0.2s ease;
+            color: #fff;
+            transition: all 0.25s ease;
         }
-
+        .form-input::placeholder { color: rgba(255,255,255,0.35); }
         .form-input:focus {
             outline: none;
             border-color: var(--brand-400);
-            background: white;
-            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+            background: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15), inset 0 0 0 1px rgba(96,165,250,0.3);
         }
 
         .submit-btn {
-            width: 100%;
-            padding: 1rem;
-            background: var(--brand-600);
-            color: white;
-            border: none;
-            border-radius: 1rem;
-            font-size: 1rem;
-            font-weight: 700;
-            cursor: pointer;
+            width: 100%; padding: 1rem;
+            background: linear-gradient(135deg, var(--brand-600), var(--brand-500));
+            color: white; border: none; border-radius: 1rem;
+            font-size: 1rem; font-weight: 700; cursor: pointer;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             margin-top: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.3);
+            display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+            box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.45);
+            position: relative; overflow: hidden;
         }
-
+        .submit-btn::before {
+            content: '';
+            position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+            transition: left 0.5s;
+        }
+        .submit-btn:hover::before { left: 100%; }
         .submit-btn:hover {
-            background: var(--brand-700);
-            transform: translateY(-1px);
-            box-shadow: 0 15px 30px -8px rgba(37, 99, 235, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 18px 36px -8px rgba(37, 99, 235, 0.55);
         }
-
-        .submit-btn:active {
-            transform: translateY(0);
-        }
-
+        .submit-btn:active { transform: translateY(0); }
         .submit-btn:disabled {
-            background: var(--slate-400);
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
+            background: rgba(255,255,255,0.1); cursor: not-allowed;
+            transform: none; box-shadow: none;
         }
 
         .hint {
-            text-align: center;
-            margin-top: 1.5rem;
-            font-size: 0.75rem;
-            color: var(--slate-400);
-            font-weight: 500;
+            text-align: center; margin-top: 1.5rem;
+            font-size: 0.75rem; color: rgba(255,255,255,0.35); font-weight: 500;
         }
 
-        .spinner {
-            animation: rotate 1s linear infinite;
-            width: 20px;
-            height: 20px;
-        }
+        .spinner { animation: rotate 1s linear infinite; width: 20px; height: 20px; }
+        @keyframes rotate { 100% { transform: rotate(360deg); } }
 
-        @keyframes rotate {
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-
-        .shake {
-            animation: shake 0.4s cubic-bezier(.36, .07, .19, .97) both;
-        }
-
+        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
         @keyframes shake {
-
-            10%,
-            90% {
-                transform: translate3d(-1px, 0, 0);
-            }
-
-            20%,
-            80% {
-                transform: translate3d(2px, 0, 0);
-            }
-
-            30%,
-            50%,
-            70% {
-                transform: translate3d(-4px, 0, 0);
-            }
-
-            40%,
-            60% {
-                transform: translate3d(4px, 0, 0);
-            }
+            10%, 90%  { transform: translate3d(-1px, 0, 0); }
+            20%, 80%  { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60%  { transform: translate3d(4px, 0, 0); }
         }
+
+        /* ── Apple-style 页面大标题 ── */
+        body {
+            flex-direction: column;
+            gap: 0;
+        }
+        .page-title {
+            position: relative; z-index: 10;
+            text-align: center;
+            margin-bottom: 4rem;
+            opacity: 0;
+            animation: fadeDown 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .page-title h1 {
+            font-size: 3.25rem;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.3);
+        }
+        .page-title .subtitle {
+            font-size: 1.125rem;
+            color: rgba(255,255,255,0.5);
+            font-weight: 400;
+            margin-top: 0.6rem;
+            letter-spacing: 0.15em;
+        }
+        @keyframes fadeDown {
+            from { transform: translateY(-16px); opacity: 0; }
+            to   { transform: translateY(0); opacity: 1; }
+        }
+
+        /* ── 底部版权 ── */
+        .copyright {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.3);
+            letter-spacing: 0.03em;
+            margin-top: 2.5rem;
+            padding-bottom: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        /* ====== 响应式适配 ====== */
+
+        /* 允许在小屏幕上滚动 */
+        body { overflow-y: auto; }
+
+        /* 大屏桌面 (≥1200px) - 默认即可 */
+
+        /* 中等屏幕 / 小笔记本 (≤1024px) */
+        @media (max-width: 1024px) {
+            .page-title { margin-bottom: 3rem; }
+            .page-title h1 { font-size: 2.75rem; }
+            .page-title .subtitle { font-size: 1rem; }
+            .login-container { padding: 2.5rem 2rem; max-width: 420px; }
+        }
+
+        /* 平板 (≤768px) */
+        @media (max-width: 768px) {
+            body { padding: 2rem 1rem; }
+            .page-title { margin-bottom: 2.5rem; }
+            .page-title h1 { font-size: 2.25rem; }
+            .page-title .subtitle { font-size: 0.9rem; letter-spacing: 0.1em; }
+            .login-container { padding: 2rem 1.75rem; border-radius: 1.5rem; max-width: 400px; }
+            .welcome-text h2 { font-size: 1.125rem; }
+            .form-input { padding: 0.75rem 1rem 0.75rem 2.75rem; font-size: 0.9375rem; }
+            .submit-btn { padding: 0.875rem; font-size: 0.9375rem; }
+        }
+
+        /* 手机 (≤480px) */
+        @media (max-width: 480px) {
+            body { padding: 1.5rem 0.75rem; }
+            .page-title { margin-bottom: 2rem; }
+            .page-title h1 { font-size: 1.75rem; letter-spacing: -0.01em; }
+            .page-title .subtitle { font-size: 0.8rem; letter-spacing: 0.08em; margin-top: 0.4rem; }
+            .login-container {
+                padding: 1.75rem 1.25rem;
+                border-radius: 1.25rem;
+                max-width: 100%;
+            }
+            .welcome-text { margin-bottom: 1.5rem; }
+            .welcome-text h2 { font-size: 1.05rem; }
+            .welcome-text p { font-size: 0.8rem; }
+            .form-group { margin-bottom: 1.25rem; }
+            .form-label { font-size: 0.8125rem; }
+            .form-input { padding: 0.7rem 0.875rem 0.7rem 2.5rem; font-size: 0.875rem; border-radius: 0.75rem; }
+            .submit-btn { padding: 0.8rem; font-size: 0.875rem; border-radius: 0.75rem; margin-top: 0.75rem; }
+            .hint { margin-top: 1rem; font-size: 0.6875rem; }
+            .copyright { bottom: 0.75rem; font-size: 0.625rem; }
+        }
+
+        /* 横屏 / 矮视口适配 */
+        @media (max-height: 700px) {
+            .page-title { margin-bottom: 1.5rem; }
+            .page-title h1 { font-size: 2rem; }
+            .page-title .subtitle { font-size: 0.85rem; }
+            .login-container { padding: 1.75rem 2rem; }
+            .welcome-text { margin-bottom: 1rem; }
+            .form-group { margin-bottom: 1rem; }
+            .submit-btn { margin-top: 0.5rem; padding: 0.75rem; }
+            .hint { margin-top: 0.75rem; }
+        }
+        @media (max-height: 500px) {
+            .page-title { margin-bottom: 1rem; }
+            .page-title h1 { font-size: 1.5rem; }
+            .login-container { padding: 1.25rem 1.5rem; }
+        }
+
     </style>
 </head>
 
 <body>
+    <!-- 视频背景 -->
+    <div class="video-bg">
+        <video autoplay muted loop playsinline>
+            <source src="/static/背景视频.webm" type="video/webm">
+        </video>
+    </div>
+    <div class="video-overlay"></div>
+
+    <!-- Apple-style 页面大标题 -->
+    <div class="page-title">
+        <h1>河北京车设备运维管理平台</h1>
+        <div class="subtitle">INTELLIGENT EQUIPMENT MANAGEMENT</div>
+    </div>
+
     <div class="login-container" id="loginCard">
-        <div class="header">
-            <div class="logo-box">
-                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="4" y="4" width="16" height="16" rx="2" />
-                    <rect x="9" y="9" width="6" height="6" />
-                    <path d="M9 1v3" />
-                    <path d="M15 1v3" />
-                    <path d="M9 20v3" />
-                    <path d="M15 20v3" />
-                    <path d="M20 9h3" />
-                    <path d="M20 15h3" />
-                    <path d="M1 9h3" />
-                    <path d="M1 15h3" />
-                </svg>
-            </div>
-            <h1>河北京车 <span>设备管理</span></h1>
-        </div>
 
         <div class="welcome-text">
             <h2>欢迎回来</h2>
-            <p>企业级核心设备管控台</p>
+            <p>请登录以继续访问管理平台</p>
         </div>
 
         <form id="loginForm">
@@ -313,6 +358,9 @@
             提示: 本地演示环境使用 admin / admin 登录
         </div>
     </div>
+
+    <!-- 底部版权 -->
+    <div class="copyright">Copyright © 2025 河北京车轨道交通车辆装备有限公司</div>
 
     <script>
         document.getElementById('loginForm').addEventListener('submit', async function (e) {

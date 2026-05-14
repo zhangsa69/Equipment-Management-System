@@ -1594,6 +1594,29 @@ def inspect_device_page(device_id: str):
     # 增加 Cache-Control 头部，防止移动端浏览器缓存旧页面
     return FileResponse("inspect.html", headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
+@app.get("/assets/bg-video.mp4", summary="登录页背景视频", response_class=FileResponse)
+def login_bg_video():
+    video_path = "设备滑动视频.mp4"
+    if not os.path.exists(video_path):
+        raise HTTPException(status_code=404, detail="未找到背景视频文件")
+    return FileResponse(video_path, media_type="video/mp4")
+
+PHOTO_DIR = "photo"
+os.makedirs(PHOTO_DIR, exist_ok=True)
+
+@app.post("/api/upload-photo", summary="上传现场照片（测试功能）")
+async def upload_photo(file: UploadFile = File(...)):
+    """测试用照片上传接口，将图片保存到 photo 目录"""
+    ext = os.path.splitext(file.filename)[1] or ".jpg"
+    filename = f"{uuid.uuid4().hex}{ext}"
+    filepath = os.path.join(PHOTO_DIR, filename)
+    contents = await file.read()
+    with open(filepath, "wb") as f:
+        f.write(contents)
+    return {"message": "上传成功", "filename": filename, "path": f"/photo/{filename}"}
+
+app.mount("/photo", StaticFiles(directory=PHOTO_DIR), name="photo")
+
 @app.get("/login", summary="安全登录页面", response_class=FileResponse)
 def login_page():
     if not os.path.exists("login.html"):

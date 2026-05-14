@@ -56,6 +56,335 @@
             display: flex;
             align-items: center;
         }
+
+        /* ====== 深色模式切换按钮样式 (From Uiverse.io by andrew-demchenk0) ====== */
+        .theme-switch {
+            font-size: 17px;
+            position: relative;
+            display: inline-block;
+            width: 64px;
+            height: 34px;
+        }
+        .theme-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .theme-switch .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #73C0FC;
+            transition: .4s;
+            border-radius: 30px;
+        }
+        .theme-switch .slider:before {
+            position: absolute;
+            content: "";
+            height: 30px;
+            width: 30px;
+            border-radius: 20px;
+            left: 2px;
+            bottom: 2px;
+            z-index: 2;
+            background-color: #e8e8e8;
+            transition: .4s;
+        }
+        .theme-switch .sun svg {
+            position: absolute;
+            top: 6px;
+            left: 36px;
+            z-index: 1;
+            width: 24px;
+            height: 24px;
+        }
+        .theme-switch .moon svg {
+            fill: #73C0FC;
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            z-index: 1;
+            width: 24px;
+            height: 24px;
+        }
+        .theme-switch .sun svg {
+            animation: rotate 15s linear infinite;
+        }
+        @keyframes rotate {
+            0% { transform: rotate(0); }
+            100% { transform: rotate(360deg); }
+        }
+        .theme-switch .moon svg {
+            animation: tilt 5s linear infinite;
+        }
+        @keyframes tilt {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(-10deg); }
+            75% { transform: rotate(10deg); }
+            100% { transform: rotate(0deg); }
+        }
+        .theme-switch .theme-input:checked + .slider {
+            background-color: #183153;
+        }
+        .theme-switch .theme-input:focus + .slider {
+            box-shadow: 0 0 1px #183153;
+        }
+        .theme-switch .theme-input:checked + .slider:before {
+            transform: translateX(30px);
+        }
+
+        /* ====== 深色模式全局样式 ====== */
+        html.dark body {
+            background-color: #0f172a;
+            color: #e2e8f0;
+        }
+        /* 侧边栏 */
+        html.dark aside {
+            background-color: #020617 !important;
+            border-color: #1e293b !important;
+        }
+        html.dark aside .border-b {
+            border-color: #1e293b !important;
+        }
+        html.dark aside .border-t {
+            border-color: #1e293b !important;
+        }
+        /* 顶部通栏 */
+        html.dark header {
+            background-color: #1e293b !important;
+            border-color: #334155 !important;
+        }
+        html.dark header h2 {
+            color: #f1f5f9 !important;
+        }
+        html.dark header .text-slate-500 {
+            color: #94a3b8 !important;
+        }
+        html.dark header .hover\:bg-slate-50:hover {
+            background-color: #334155 !important;
+        }
+        html.dark header .bg-brand-100 {
+            background-color: #1e3a5f !important;
+        }
+        html.dark header .text-brand-700 {
+            color: #93c5fd !important;
+        }
+        html.dark header .text-sm.font-medium {
+            color: #e2e8f0 !important;
+        }
+        html.dark header .text-slate-400 {
+            color: #94a3b8 !important;
+        }
+        /* 主内容区背景 */
+        html.dark #dashboard-top {
+            background-color: #0f172a !important;
+        }
+        /* 统计卡片 */
+        html.dark .bg-white {
+            background-color: #1e293b !important;
+        }
+        html.dark .border-slate-100 {
+            border-color: #334155 !important;
+        }
+        html.dark .border-slate-200 {
+            border-color: #334155 !important;
+        }
+        html.dark .text-slate-800 {
+            color: #f1f5f9 !important;
+        }
+        html.dark .text-slate-500 {
+            color: #94a3b8 !important;
+        }
+        html.dark .text-slate-600 {
+            color: #cbd5e1 !important;
+        }
+        html.dark .text-slate-700 {
+            color: #e2e8f0 !important;
+        }
+        html.dark .text-slate-400 {
+            color: #64748b !important;
+        }
+        html.dark .text-slate-300 {
+            color: #94a3b8 !important;
+        }
+        /* 表格 */
+        html.dark .bg-slate-50\/80 {
+            background-color: #0f172a !important;
+        }
+        html.dark .bg-slate-50\/50 {
+            background-color: #0f172a !important;
+        }
+        html.dark .bg-slate-50 {
+            background-color: #0f172a !important;
+        }
+        html.dark .hover\:bg-slate-50\/80:hover {
+            background-color: #1a2744 !important;
+        }
+        html.dark .hover\:bg-slate-50:hover {
+            background-color: #1a2744 !important;
+        }
+        html.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
+            border-color: #334155 !important;
+        }
+        /* 输入框 */
+        html.dark input[type="text"],
+        html.dark input[type="number"],
+        html.dark input[type="time"],
+        html.dark select,
+        html.dark textarea {
+            background-color: #0f172a !important;
+            border-color: #475569 !important;
+            color: #e2e8f0 !important;
+        }
+        html.dark input::placeholder,
+        html.dark textarea::placeholder {
+            color: #64748b !important;
+        }
+        /* 弹窗 */
+        html.dark #planModal .bg-white,
+        html.dark #maintenanceModal .bg-white,
+        html.dark #deviceModal .bg-white,
+        html.dark #qrModal .bg-white {
+            background-color: #1e293b !important;
+        }
+        html.dark #planModal .bg-slate-50\/80,
+        html.dark #maintenanceModal .bg-slate-50\/80,
+        html.dark #deviceModal .bg-slate-50\/80,
+        html.dark #qrModal .bg-slate-50\/80 {
+            background-color: #0f172a !important;
+        }
+        html.dark #deviceModal .bg-slate-50\/50 {
+            background-color: #0f172a !important;
+        }
+        /* 分页按钮 */
+        html.dark .bg-white.rounded {
+            background-color: #1e293b !important;
+        }
+        html.dark button.border-slate-200 {
+            border-color: #475569 !important;
+            color: #cbd5e1 !important;
+        }
+        html.dark button.border-slate-200:hover {
+            background-color: #334155 !important;
+        }
+        /* 滚动条深色 */
+        html.dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+        html.dark ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        /* 图表卡片 */
+        html.dark .shadow-sm {
+            box-shadow: 0 1px 3px 0 rgba(0,0,0,.3), 0 1px 2px -1px rgba(0,0,0,.3) !important;
+        }
+        /* hover-bg-slate-200 */
+        html.dark .hover\:bg-slate-200:hover {
+            background-color: #334155 !important;
+        }
+        /* 圆形图标容器深色适配 */
+        html.dark .bg-blue-50 {
+            background-color: #1e3a5f !important;
+        }
+        html.dark .bg-emerald-50 {
+            background-color: #064e3b !important;
+        }
+        html.dark .bg-red-50 {
+            background-color: #450a0a !important;
+        }
+        html.dark .bg-orange-100 {
+            background-color: #431407 !important;
+        }
+        html.dark .bg-emerald-100 {
+            background-color: #064e3b !important;
+        }
+        html.dark .bg-purple-100 {
+            background-color: #3b0764 !important;
+        }
+        html.dark .bg-blue-100 {
+            background-color: #1e3a5f !important;
+        }
+        html.dark .bg-slate-100 {
+            background-color: #334155 !important;
+        }
+        /* 过渡动画 */
+        body, header, main, aside, .bg-white, .bg-slate-50 {
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        /* ====== 天气概览组件样式 ====== */
+        .weather-widget {
+            display: flex;
+            align-items: center;
+            padding: 2px 0;
+            font-size: 12px;
+            color: #475569;
+            white-space: nowrap;
+            cursor: default;
+            border-right: 1px solid #e2e8f0;
+            padding-right: 16px;
+        }
+        .weather-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .weather-row-top {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .weather-label {
+            font-weight: 700;
+            font-size: 12px;
+            color: #334155;
+        }
+        .weather-date {
+            font-size: 11px;
+            color: #94a3b8;
+            font-weight: 500;
+        }
+        .weather-detail {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 11px;
+            color: #64748b;
+        }
+        .weather-detail span {
+            display: inline-flex;
+            align-items: center;
+        }
+        .weather-detail .weather-sep {
+            width: 1px;
+            height: 10px;
+            background: #cbd5e1;
+            flex-shrink: 0;
+        }
+        .weather-loading {
+            font-size: 11px;
+            color: #94a3b8;
+        }
+        /* 深色模式天气组件 */
+        html.dark .weather-widget {
+            color: #94a3b8 !important;
+            border-color: #334155 !important;
+        }
+        html.dark .weather-label {
+            color: #e2e8f0 !important;
+        }
+        html.dark .weather-date {
+            color: #64748b !important;
+        }
+        html.dark .weather-detail {
+            color: #94a3b8 !important;
+        }
+        html.dark .weather-detail .weather-sep {
+            background: #475569 !important;
+        }
     </style>
 </head>
 
@@ -124,6 +453,25 @@
                 <h2 class="text-xl font-bold text-slate-800">仪表盘</h2>
             </div>
             <div class="flex items-center space-x-4">
+                <!-- 今日厂区天气概览 -->
+                <div class="weather-widget hidden md:flex" id="weatherWidget">
+                    <div class="weather-info">
+                        <div class="weather-row-top">
+                            <span class="weather-label">厂区天气概览</span>
+                            <span class="weather-date" id="weatherDate">--</span>
+                        </div>
+                        <div class="weather-detail" id="weatherDetail">
+                            <span class="weather-loading">获取中...</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- 深色模式切换按钮 -->
+                <label class="theme-switch" id="themeToggle" title="切换深色/浅色模式">
+                    <span class="sun"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="#ffd43b"><circle r="5" cy="12" cx="12"></circle><path d="m21 13h-1a1 1 0 0 1 0-2h1a1 1 0 0 1 0 2zm-17 0h-1a1 1 0 0 1 0-2h1a1 1 0 0 1 0 2zm13.66-5.66a1 1 0 0 1 -.66-.29 1 1 0 0 1 0-1.41l.71-.71a1 1 0 1 1 1.41 1.41l-.71.71a1 1 0 0 1 -.75.29zm-12.02 12.02a1 1 0 0 1 -.71-.29 1 1 0 0 1 0-1.41l.71-.66a1 1 0 0 1 1.41 1.41l-.71.71a1 1 0 0 1 -.7.24zm6.36-14.36a1 1 0 0 1 -1-1v-1a1 1 0 0 1 2 0v1a1 1 0 0 1 -1 1zm0 17a1 1 0 0 1 -1-1v-1a1 1 0 0 1 2 0v1a1 1 0 0 1 -1 1zm-5.66-14.66a1 1 0 0 1 -.7-.29l-.71-.71a1 1 0 0 1 1.41-1.41l.71.71a1 1 0 0 1 0 1.41 1 1 0 0 1 -.71.29zm12.02 12.02a1 1 0 0 1 -.7-.29l-.66-.71a1 1 0 0 1 1.36-1.36l.71.71a1 1 0 0 1 0 1.41 1 1 0 0 1 -.71.24z"></path></g></svg></span>
+                    <span class="moon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path d="m223.5 32c-123.5 0-223.5 100.3-223.5 224s100 224 223.5 224c60.6 0 115.5-24.2 155.8-63.4 5-4.9 6.3-12.5 3.1-18.7s-10.1-9.7-17-8.5c-9.8 1.7-19.8 2.6-30.1 2.6-96.9 0-175.5-78.8-175.5-176 0-65.8 36-123.1 89.3-153.3 6.1-3.5 9.2-10.5 7.7-17.3s-7.3-11.9-14.3-12.5c-6.3-.5-12.6-.8-19-.8z"></path></svg></span>
+                    <input type="checkbox" class="theme-input">
+                    <span class="slider"></span>
+                </label>
                 <div class="flex items-center border-l pl-4 cursor-pointer hover:bg-slate-50 p-1 rounded">
                     <div
                         class="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-sm mr-2 shadow-inner">
@@ -764,6 +1112,109 @@
 
 
     <script>
+        // ====== 深色模式切换逻辑 ======
+        (function initTheme() {
+            const saved = localStorage.getItem('dashboard-theme');
+            const checkbox = document.querySelector('#themeToggle .theme-input');
+            if (saved === 'dark') {
+                document.documentElement.classList.add('dark');
+                if (checkbox) checkbox.checked = true;
+            }
+            if (checkbox) {
+                checkbox.addEventListener('change', function () {
+                    if (this.checked) {
+                        document.documentElement.classList.add('dark');
+                        localStorage.setItem('dashboard-theme', 'dark');
+                    } else {
+                        document.documentElement.classList.remove('dark');
+                        localStorage.setItem('dashboard-theme', 'light');
+                    }
+                });
+            }
+        })();
+
+        // ====== 天气概览数据获取 ======
+        // 数据源: Open-Meteo（聚合中国气象局等全球权威气象数据）
+        // 定位: 保定市 (纬度38.87, 经度115.48) — 河北京车所在地
+        const WMO_WEATHER_MAP = {
+            0: { emoji: '☀️', text: '晴' },
+            1: { emoji: '🌤️', text: '大部晴' },
+            2: { emoji: '⛅', text: '多云' },
+            3: { emoji: '☁️', text: '阴' },
+            45: { emoji: '🌫️', text: '雾' },
+            48: { emoji: '🌫️', text: '霜雾' },
+            51: { emoji: '🌦️', text: '小毛毛雨' },
+            53: { emoji: '🌦️', text: '毛毛雨' },
+            55: { emoji: '🌧️', text: '大毛毛雨' },
+            56: { emoji: '🌧️', text: '冻毛毛雨' },
+            57: { emoji: '🌧️', text: '重度冻雨' },
+            61: { emoji: '🌧️', text: '小雨' },
+            63: { emoji: '🌧️', text: '中雨' },
+            65: { emoji: '🌧️', text: '大雨' },
+            66: { emoji: '🌧️', text: '冻雨' },
+            67: { emoji: '🌧️', text: '大冻雨' },
+            71: { emoji: '🌨️', text: '小雪' },
+            73: { emoji: '🌨️', text: '中雪' },
+            75: { emoji: '❄️', text: '大雪' },
+            77: { emoji: '🌨️', text: '雪粒' },
+            80: { emoji: '🌧️', text: '阵雨' },
+            81: { emoji: '🌧️', text: '中阵雨' },
+            82: { emoji: '⛈️', text: '暴雨' },
+            85: { emoji: '🌨️', text: '阵雪' },
+            86: { emoji: '❄️', text: '大阵雪' },
+            95: { emoji: '⛈️', text: '雷暴' },
+            96: { emoji: '⛈️', text: '雷暴+冰雹' },
+            99: { emoji: '⛈️', text: '强雷暴+冰雹' },
+        };
+
+        function getWindLevel(speedKmh) {
+            if (speedKmh < 1) return '0级 静风';
+            if (speedKmh < 6) return '1级 软风';
+            if (speedKmh < 12) return '2级 轻风';
+            if (speedKmh < 20) return '3级 微风';
+            if (speedKmh < 29) return '4级 和风';
+            if (speedKmh < 39) return '5级 清风';
+            if (speedKmh < 50) return '6级 强风';
+            if (speedKmh < 62) return '7级 疾风';
+            return '8级+ 大风';
+        }
+
+        async function fetchWeather() {
+            try {
+                const apiUrl = 'https://api.open-meteo.com/v1/forecast?latitude=38.87&longitude=115.48&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=Asia/Shanghai&forecast_days=1';
+                const res = await fetch(apiUrl);
+                if (!res.ok) throw new Error('天气接口异常');
+                const data = await res.json();
+                const cur = data.current;
+
+                const wmo = WMO_WEATHER_MAP[cur.weather_code] || { emoji: '', text: '未知' };
+                const windText = getWindLevel(cur.wind_speed_10m);
+
+                // 更新日期
+                const now = new Date();
+                const weekDays = ['周日','周一','周二','周三','周四','周五','周六'];
+                const dateStr = `${now.getFullYear()}年${String(now.getMonth()+1).padStart(2,'0')}月${String(now.getDate()).padStart(2,'0')}日 ${weekDays[now.getDay()]}`;
+                document.getElementById('weatherDate').textContent = dateStr;
+
+                // 更新详情（纯文字，无卡通图标）
+                document.getElementById('weatherDetail').innerHTML = `
+                    <span>${cur.temperature_2m}°C ${wmo.text}</span>
+                    <span class="weather-sep"></span>
+                    <span>湿度 ${cur.relative_humidity_2m}%</span>
+                    <span class="weather-sep"></span>
+                    <span>风力 ${windText}</span>
+                `;
+            } catch (err) {
+                console.warn('天气数据获取失败:', err);
+                document.getElementById('weatherDetail').innerHTML = '<span class="weather-loading">天气暂不可用</span>';
+                // 仍然显示日期
+                const now = new Date();
+                const weekDays = ['周日','周一','周二','周三','周四','周五','周六'];
+                const dateStr = `${now.getFullYear()}年${String(now.getMonth()+1).padStart(2,'0')}月${String(now.getDate()).padStart(2,'0')}日 ${weekDays[now.getDay()]}`;
+                document.getElementById('weatherDate').textContent = dateStr;
+            }
+        }
+
         // 初始化 Lucide 图标
         lucide.createIcons();
         // 全局分页状态
@@ -1371,6 +1822,8 @@
             fetchSystemLogs();
             initChart();
             fetchUsersList();
+            fetchWeather(); // 获取今日厂区天气
+            setInterval(fetchWeather, 30 * 60 * 1000); // 每30分钟自动刷新天气
         });
 
 
