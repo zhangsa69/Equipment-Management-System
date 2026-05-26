@@ -263,6 +263,7 @@ class SystemLog(Base):
     operator = Column(String(100)) # 操作人
     content = Column(String(2000)) # 日志详情内容
     created_at = Column(DateTime, default=datetime.now)
+    photos = Column(JSON, nullable=True) # 存储上传的照片路径列表，如：["/photo/xxx.jpg"]
     
     device = relationship("Device")
 
@@ -290,6 +291,14 @@ class MaintenanceRecord(Base):
     
     device = relationship("Device", back_populates="maintenance_records")
     plan = relationship("MaintenancePlan")
+
+class WorkOrderNotificationLog(Base):
+    """工单超时未完工推送记录表（用于节流）"""
+    __tablename__ = "work_order_notification_logs"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    work_order_id = Column(String(36), ForeignKey("work_orders.id"), nullable=False)
+    notified_at = Column(DateTime, default=datetime.now)
 
 Base.metadata.create_all(bind=engine)
 
@@ -385,6 +394,7 @@ class InspectionSubmit(BaseModel):
     checklist: list[ChecklistItem]
     remarks: Optional[str] = None
     timestamp: Optional[str] = None
+    photos: Optional[list[str]] = None # 新增照片字段
 
 class MaintenanceSubmit(BaseModel):
     device_id: str
@@ -393,6 +403,7 @@ class MaintenanceSubmit(BaseModel):
     checklist: Optional[list[ChecklistItem]] = None
     remarks: Optional[str] = None
     timestamp: Optional[str] = None
+    photos: Optional[list[str]] = None # 新增照片字段
 
 class RecordDeviceResponse(BaseModel):
     name: str
@@ -477,6 +488,7 @@ class WorkOrderCreate(BaseModel):
     reporter_id: str
     leader_id: str
     description: str
+    photos: Optional[list[str]] = None # 新增照片字段
 
 class WorkOrderDispatch(BaseModel):
     repairman_id: str
@@ -493,6 +505,7 @@ class WorkOrderResponse(BaseModel):
     created_at: datetime
     device: Optional[DeviceResponse] = None
     reporter: Optional[UserResponse] = None
+    photos: Optional[list[str]] = None # 新增照片展示字段
     model_config = ConfigDict(from_attributes=True)
 
 class LogResponse(BaseModel):
@@ -503,6 +516,7 @@ class LogResponse(BaseModel):
     content: str
     created_at: datetime
     device: Optional[DeviceResponse] = None
+    photos: Optional[list[str]] = None # 新增照片字段
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -522,6 +536,19 @@ warnings.filterwarnings("ignore", message="on_event is deprecated")
 @app.on_event("startup")
 def on_startup():
     """应用启动时：初始化数据 + 启动定时任务（防止 reload 模式下重复启动）"""
+    # 自动检查并为 system_logs 添加 photos 字段
+    try:
+        from sqlalchemy import text
+        db = SessionLocal()
+        cursor = db.execute(text("PRAGMA table_info(system_logs)"))
+        columns = [row[1] for row in cursor.fetchall()]
+        if "photos" not in columns:
+            db.execute(text("ALTER TABLE system_logs ADD COLUMN photos JSON"))
+            db.commit()
+            logger.info("🎉 成功为 system_logs 表添加 photos 字段")
+    except Exception as e:
+        logger.error(f"❌ 自动添加 photos 字段失败: {str(e)}")
+        
     init_default_data()
     
     # 自动同步所有设备的二维码 (适配可能的 IP 变动)
@@ -534,6 +561,7 @@ def on_startup():
     # 仅在实际工作进程中启动调度器
     if not scheduler.running:
         scheduler.add_job(check_overdue_and_notify, 'interval', minutes=1, id='overdue_notify', replace_existing=True)
+        scheduler.add_job(check_uncompleted_work_orders_and_notify, 'interval', minutes=1, id='work_order_overdue_notify', replace_existing=True)
         scheduler.start()
         logger.info("✅ 后台定时调度器已启动 (PID: %s)", os.getpid())
 
@@ -789,6 +817,104 @@ def check_overdue_and_notify():
     logger.info("🔄 周期任务执行完毕")
     logger.info("=" * 60)
 
+
+def check_uncompleted_work_orders_and_notify():
+    """定时检查超时未完工的工单并通过钉钉应用机器人推送给张洒和李宝军（23小时独立节流）"""
+    logger.info("=" * 60)
+    logger.info("🔄 开始系统周期任务：检查超时未完工工单提醒...")
+    db = SessionLocal()
+    try:
+        now_dt = datetime.now()
+        # 1. 查找提交后超过2天仍处于未完工状态（“待处理”或“维修中”）的工单
+        two_days_ago = now_dt - timedelta(days=2)
+        overdue_orders = db.query(WorkOrder).options(
+            joinedload(WorkOrder.device)
+        ).filter(
+            WorkOrder.status != "已完成",
+            WorkOrder.created_at <= two_days_ago
+        ).all()
+        
+        logger.info(f"📊 扫描到超时未完工工单总数: {len(overdue_orders)}")
+        if not overdue_orders:
+            logger.info("📭 本轮无需推送任何超时工单通知 (无超时未完工工单)")
+            return
+        
+        # 2. 查询 张洒 和 李宝军 的 User ID
+        target_names = ["张洒", "李宝军"]
+        target_users = db.query(User).filter(User.name.in_(target_names)).all()
+        target_uids = [u.id for u in target_users]
+        
+        # 兜底保障：如果数据库里没有这两个用户，就用其实际的钉钉 ID
+        fallback_uids = {
+            "张洒": "2636464912782834",
+            "李宝军": "21271149341291549353"
+        }
+        for name in target_names:
+            if name not in [u.name for u in target_users]:
+                target_uids.append(fallback_uids[name])
+                
+        # 去重
+        target_uids = list(set(target_uids))
+        
+        if not target_uids:
+            logger.warning("⚠️ 未找到张洒和李宝军的用户ID，无法发送通知")
+            return
+            
+        access_token = None
+        for order in overdue_orders:
+            # 3. 节流检查：同一个工单23小时内只提醒一次
+            last_log = db.query(WorkOrderNotificationLog).filter(
+                WorkOrderNotificationLog.work_order_id == order.id
+            ).order_by(WorkOrderNotificationLog.notified_at.desc()).first()
+            
+            if last_log and now_dt < last_log.notified_at + timedelta(hours=23):
+                logger.info(f"      ❌ 节流限制: 工单[{order.id}]在23小时内已通知过，跳过")
+                continue
+                
+            # 4. 获取 token 并发送钉钉通知
+            if not access_token:
+                access_token = get_dingtalk_access_token()
+                if not access_token:
+                    logger.error("❌ 无法获取钉钉 access_token，跳过推送")
+                    break
+                    
+            device_name = order.device.name if order.device else "未知设备"
+            title = "⚠️ 工单超时未完工告警"
+            content = f"### ⚠️ 工单超时未完工告警\n\n" \
+                      f"**工单ID**: `{order.id}`\n\n" \
+                      f"**关联设备**: {device_name}\n\n" \
+                      f"**当前状态**: `{order.status}`\n\n" \
+                      f"**创建时间**: {order.created_at.strftime('%Y-%m-%d %H:%M:%S')}\n\n" \
+                      f"**超时时长**: 超过 2 天未完工\n\n" \
+                      f"**故障描述**: {order.description}\n\n" \
+                      f"[点击查看工单详情]({BASE_URL}/order/{order.id}?readonly=true)"
+                      
+            success = send_dingtalk_robot_message(
+                access_token=access_token,
+                user_ids=target_uids,
+                title=title,
+                content=content
+            )
+            
+            if success:
+                db.add(WorkOrderNotificationLog(
+                    work_order_id=order.id,
+                    notified_at=now_dt
+                ))
+                logger.info(f"  ✅ 超时工单[{order.id}]推送成功，已记录节流标记")
+            else:
+                logger.warning(f"  ❌ 超时工单[{order.id}]推送失败!")
+                
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.exception(f"❌ 超时工单推送任务异常: {str(e)}")
+    finally:
+        db.close()
+    logger.info("🔄 超时工单检查任务完毕")
+    logger.info("=" * 60)
+
+
 # 调度器在 lifespan 中启动，此处仅保持定义
 
 
@@ -936,6 +1062,58 @@ def list_devices(db: Session = Depends(get_db)):
         logger.exception(f"获取设备列表失败: {str(e)}")
         raise HTTPException(status_code=500, detail=f"内部错误: {str(e)}")
 
+@app.get("/devices/export", summary="批量导出设备列表为 Excel 文件")
+def export_devices_to_excel(db: Session = Depends(get_db)):
+    """
+    将系统中全部设备资产数据导出为 .xlsx 文件，
+    列名与导入模板保持一致，方便用户导出修改再导入。
+    """
+    import pandas as pd
+    from io import BytesIO
+    from urllib.parse import quote
+    from fastapi.responses import StreamingResponse
+
+    devices = db.query(Device).options(
+        joinedload(Device.inspector),
+        joinedload(Device.maintenance_leader_obj)
+    ).all()
+
+    rows = []
+    for d in devices:
+        rows.append({
+            "设备名称": d.name or "",
+            "设备编号": d.sn or "",
+            "固定资产编号": d.asset_no or "",
+            "规格型号": d.spec or "",
+            "生产厂家": d.manufacturer or "",
+            "入厂日期": d.purchase_date or "",
+            "终验通过日期": d.final_inspection_date or "",
+            "放置地点": d.location or "",
+            "使用年限": d.useful_life or "",
+            "使用状况": d.usage_status or "",
+            "负责部门": d.dept or "",
+            "设备等级": d.grade or "",
+            "责任人": d.inspector.name if d.inspector else "",
+            "维修班长": d.maintenance_leader or "",
+            "当前状态": d.status or "",
+        })
+
+    df = pd.DataFrame(rows)
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="设备列表")
+    output.seek(0)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    cn_name = f"设备列表_{timestamp}.xlsx"
+    ascii_name = f"devices_{timestamp}.xlsx"
+    encoded_name = quote(cn_name)
+    disposition = f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{encoded_name}"
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": disposition}
+    )
 @app.get("/devices/{device_id}", response_model=DeviceResponse, summary="获取指定设备明细")
 def read_device(device_id: str, db: Session = Depends(get_db)):
     device = db.query(Device).options(
@@ -1081,7 +1259,8 @@ def submit_inspection(payload: InspectionSubmit, db: Session = Depends(get_db)):
         device_id=payload.device_id,
         event_type="检查",
         operator="巡检员",
-        content=log_content
+        content=log_content,
+        photos=payload.photos # 传递照片列表
     )
     db.add(new_log)
     
@@ -1192,7 +1371,8 @@ def submit_maintenance(payload: MaintenanceSubmit, db: Session = Depends(get_db)
         device_id=payload.device_id,
         event_type="完工",
         operator=payload.operator or "维护人员",
-        content=f"完成了维护计划: {plan_name}。备注: {payload.remarks or '无'}"
+        content=f"完成了维护计划: {plan_name}。备注: {payload.remarks or '无'}",
+        photos=payload.photos # 传递照片列表
     )
     db.add(new_log)
     db.commit()
@@ -1240,7 +1420,8 @@ def create_repair_order(payload: WorkOrderCreate, db: Session = Depends(get_db))
         device_id=payload.device_id,
         event_type="报修",
         operator=operator_name,
-        content=log_content
+        content=log_content,
+        photos=payload.photos # 传递照片列表
     )
     db.add(new_log)
 
@@ -1272,6 +1453,18 @@ def get_work_order_detail(order_id: str, db: Session = Depends(get_db)):
     ).filter(WorkOrder.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="工单不存在")
+        
+    # 获取报修时的照片 (从 SystemLog 中查找匹配的记录)
+    from datetime import timedelta
+    log = db.query(SystemLog).filter(
+        SystemLog.device_id == order.device_id,
+        SystemLog.event_type == "报修",
+        SystemLog.created_at >= order.created_at - timedelta(seconds=10),
+        SystemLog.created_at <= order.created_at + timedelta(seconds=10)
+    ).first()
+    
+    order.photos = log.photos if log else []
+    
     return order
 
 @app.post("/orders/{order_id}/dispatch", summary="维修班长派单")
@@ -1335,7 +1528,8 @@ def complete_work_order(order_id: str, payload: dict = None, db: Session = Depen
         device_id=order.device_id,
         event_type="完工",
         operator=op_name,
-        content=log_content
+        content=log_content,
+        photos=payload.get("photos") if payload else None
     )
     db.add(new_log)
 
@@ -1578,6 +1772,7 @@ def import_devices_from_excel(file: UploadFile = File(...), db: Session = Depend
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"导入过程中出错: {str(e)}")
+
 
 @app.get("/users/", response_model=List[UserResponse], summary="拉取系统全量人员")
 def list_users(db: Session = Depends(get_db)):

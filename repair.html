@@ -157,6 +157,7 @@
         const API_BASE_URL = window.location.origin;
         const deviceId = window.location.pathname.split('/').pop();
         let usersList = [];
+        let uploadedPhotos = [];
         const searchInput = document.getElementById('reporterSearch');
         const searchList = document.getElementById('reporterList');
         const hiddenIdInput = document.getElementById('reporterId');
@@ -205,7 +206,17 @@
             if (!reporterId) return alert("请选择报修人"); if (!leaderId) return alert("无法关联负责班组");
             btn.disabled = true; btn.innerHTML = '<div class="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>';
             try {
-                const res = await fetch(`${API_BASE_URL}/repair/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ device_id: deviceId, reporter_id: reporterId, leader_id: leaderId, description: document.getElementById('description').value }) });
+                const res = await fetch(`${API_BASE_URL}/repair/`, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ 
+                        device_id: deviceId, 
+                        reporter_id: reporterId, 
+                        leader_id: leaderId, 
+                        description: document.getElementById('description').value,
+                        photos: uploadedPhotos
+                    }) 
+                });
                 if (res.ok) { btn.innerHTML = '报修成功'; btn.classList.add('bg-emerald-500'); setTimeout(() => { window.location.href = `/inspect/${deviceId}`; }, 1500); }
                 else throw new Error();
             } catch (err) { alert("提交失败"); btn.disabled = false; btn.innerHTML = '重试提交'; }
@@ -227,6 +238,9 @@
                 try {
                     const res = await fetch('/api/upload-photo', { method: 'POST', body: formData });
                     const data = await res.json();
+                    if (data.path) {
+                        uploadedPhotos.push(data.path);
+                    }
                     placeholder.innerHTML = `
                         <img src="${data.path}" class="w-full h-full object-cover" alt="故障照片">
                         <div class="absolute top-1 right-1 bg-emerald-500 text-white rounded-full w-5 h-5 flex items-center justify-center">

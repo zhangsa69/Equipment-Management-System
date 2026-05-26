@@ -453,11 +453,11 @@
                 <h2 class="text-xl font-bold text-slate-800">仪表盘</h2>
             </div>
             <div class="flex items-center space-x-4">
-                <!-- 今日厂区天气概览 -->
+                <!-- 今日厂区气象环境概览 -->
                 <div class="weather-widget hidden md:flex" id="weatherWidget">
                     <div class="weather-info">
                         <div class="weather-row-top">
-                            <span class="weather-label">厂区天气概览</span>
+                            <span class="weather-label">厂区气象环境概览</span>
                             <span class="weather-date" id="weatherDate">--</span>
                         </div>
                         <div class="weather-detail" id="weatherDetail">
@@ -586,6 +586,11 @@
                             class="flex items-center space-x-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-sm transition-colors ml-2">
                             <i data-lucide="file-up" class="w-4 h-4"></i>
                             <span class="font-medium whitespace-nowrap">批量导入</span>
+                        </button>
+                        <button onclick="exportDevices()" id="btn-export"
+                            class="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors ml-2">
+                            <i data-lucide="file-down" class="w-4 h-4"></i>
+                            <span class="font-medium whitespace-nowrap">批量导出</span>
                         </button>
                         <button onclick="openDeviceModal()"
                             class="flex items-center space-x-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg shadow-sm transition-colors ml-2">
@@ -1110,6 +1115,38 @@
         </div>
     </div>
 
+    <!-- 弹窗: 浏览日志相关照片 -->
+    <div id="photoViewModal"
+        class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden transform scale-95 transition-all duration-300 mx-4 border border-slate-100 dark:border-slate-700"
+            id="photoViewModalCard">
+            <div class="p-5 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50/80 dark:bg-slate-900/50 backdrop-blur-md">
+                <div>
+                    <h3 class="font-bold text-slate-800 dark:text-white text-lg flex items-center">
+                        <i data-lucide="image" class="w-5 h-5 mr-2 text-brand-500"></i>
+                        现场照片附件
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-0.5" id="photoViewModalSubTitle"></p>
+                </div>
+                <button onclick="closePhotoViewModal()"
+                    class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6 bg-slate-50/30 dark:bg-slate-800/50">
+                <div id="photoGrid" class="grid grid-cols-2 gap-4 max-h-[50vh] overflow-y-auto pr-1">
+                    <!-- 照片列表动态插入 -->
+                </div>
+            </div>
+            <div class="p-4 border-t border-slate-100 dark:border-slate-700 flex justify-end bg-slate-50/50 dark:bg-slate-900/30">
+                <button onclick="closePhotoViewModal()"
+                    class="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-xl transition-all font-bold text-sm">
+                    关闭
+                </button>
+            </div>
+        </div>
+    </div>
+
 
     <script>
         // ====== 深色模式切换逻辑 ======
@@ -1135,7 +1172,7 @@
 
         // ====== 天气概览数据获取 ======
         // 数据源: Open-Meteo（聚合中国气象局等全球权威气象数据）
-        // 定位: 保定市 (纬度38.87, 经度115.48) — 河北京车所在地
+        // 定位: 保定市满城区 (纬度38.95, 经度115.32) — 河北京车所在地
         const WMO_WEATHER_MAP = {
             0: { emoji: '☀️', text: '晴' },
             1: { emoji: '🌤️', text: '大部晴' },
@@ -1181,7 +1218,7 @@
 
         async function fetchWeather() {
             try {
-                const apiUrl = 'https://api.open-meteo.com/v1/forecast?latitude=38.87&longitude=115.48&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=Asia/Shanghai&forecast_days=1';
+                const apiUrl = 'https://api.open-meteo.com/v1/forecast?latitude=38.95&longitude=115.32&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=Asia/Shanghai&forecast_days=1';
                 const res = await fetch(apiUrl);
                 if (!res.ok) throw new Error('天气接口异常');
                 const data = await res.json();
@@ -1389,7 +1426,7 @@
                 tr.className = "hover:bg-slate-50/80 transition-colors group";
 
                 const lastInspectionTimeText = device.last_inspection_time
-                    ? new Date(device.last_inspection_time + 'Z').toLocaleString('zh-CN', { hour12: false }).replace('T', ' ')
+                    ? new Date(device.last_inspection_time).toLocaleString('zh-CN', { hour12: false }).replace('T', ' ')
                     : '暂无检查记录';
 
                 tr.innerHTML = `
@@ -1435,14 +1472,14 @@
                     <td class="p-4 border-b border-slate-100 text-xs text-slate-500 font-mono">
                         ${(() => {
                         if (!device.last_inspection_time) return '<span class="text-amber-500 font-bold bg-amber-50 px-1.5 py-0.5 rounded">待检查</span>';
-                        const d = new Date(device.last_inspection_time + (device.last_inspection_time.includes('Z') ? '' : 'Z'));
+                        const d = new Date(device.last_inspection_time);
                         return isNaN(d.getTime()) ? '-' : d.toLocaleString('zh-CN', { hour12: false, month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\//g, '-');
                     })()}
                     </td>
                     <td class="p-4 border-b border-slate-100 text-xs text-slate-500 font-mono">
                         ${(() => {
                         if (!device.last_maintenance_time) return '<span class="text-blue-500 font-bold bg-blue-50 px-1.5 py-0.5 rounded">待维护</span>';
-                        const d = new Date(device.last_maintenance_time + (device.last_maintenance_time.includes('Z') ? '' : 'Z'));
+                        const d = new Date(device.last_maintenance_time);
                         return isNaN(d.getTime()) ? '-' : d.toLocaleString('zh-CN', { hour12: false, month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\//g, '-');
                     })()}
                     </td>
@@ -1993,32 +2030,46 @@
 
             logs.forEach(log => {
                 const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50 transition-colors border-b border-slate-100";
+                tr.className = "hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors border-b border-slate-100 dark:border-slate-700/60";
 
                 // 类型颜色映射
                 const typeColors = {
-                    '检查': 'bg-purple-100 text-purple-600',
-                    '报修': 'bg-red-100 text-red-600',
-                    '派单': 'bg-amber-100 text-amber-600',
-                    '完工': 'bg-emerald-100 text-emerald-600'
+                    '检查': 'bg-purple-100 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400',
+                    '报修': 'bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400',
+                    '派单': 'bg-amber-100 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400',
+                    '完工': 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400'
                 };
-                const colorClass = typeColors[log.event_type] || 'bg-slate-100 text-slate-600';
+                const colorClass = typeColors[log.event_type] || 'bg-slate-100 text-slate-600 dark:bg-slate-850 dark:text-slate-400';
 
-                const timeStr = new Date(log.created_at + 'Z').toLocaleString('zh-CN', { hour12: false });
+                const timeStr = new Date(log.created_at).toLocaleString('zh-CN', { hour12: false });
                 const deviceName = log.device ? log.device.name : '未知设备';
+
+                // 如果有图片附件，显示一个极其现代的高级图片查看按钮
+                const photosEscaped = encodeURIComponent(JSON.stringify(log.photos || []));
+                const photosBtnHtml = (log.photos && log.photos.length > 0)
+                    ? `<button onclick="openPhotoViewModal(decodeURIComponent('${photosEscaped}'), '${log.event_type}', '${deviceName} - ${timeStr}')" 
+                        class="mr-4 flex items-center px-2.5 py-1 bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/40 dark:hover:bg-brand-900/60 text-brand-600 dark:text-brand-400 rounded-lg text-xs font-bold border border-brand-100 dark:border-brand-900/50 transition-all duration-300 whitespace-nowrap shadow-sm hover:shadow-md cursor-pointer">
+                        <i data-lucide="image" class="w-3.5 h-3.5 mr-1 text-brand-500 dark:text-brand-400"></i> 查看图片 (${log.photos.length})
+                       </button>`
+                    : '';
 
                 tr.innerHTML = `
                     <td class="p-5">
-                        <div class="flex items-start">
-                            <div class="mr-4 text-slate-400 font-mono text-xs mt-1 whitespace-nowrap">${timeStr}</div>
-                            <div class="flex-1">
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase mr-2 ${colorClass}">${log.event_type}</span>
-                                <span class="text-sm font-bold text-slate-700 mr-2">${deviceName}</span>
-                                <span class="text-sm text-slate-600 leading-relaxed">${log.content}</span>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-start flex-1 min-w-0">
+                                <div class="mr-4 text-slate-400 font-mono text-xs mt-1 whitespace-nowrap">${timeStr}</div>
+                                <div class="flex-1 min-w-0 pr-4">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase mr-2 ${colorClass}">${log.event_type}</span>
+                                    <span class="text-sm font-bold text-slate-700 dark:text-slate-300 mr-2">${deviceName}</span>
+                                    <span class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">${log.content}</span>
+                                </div>
                             </div>
-                            <div class="ml-4 flex items-center text-xs font-bold text-slate-400 whitespace-nowrap">
-                                <i data-lucide="user" class="w-3 h-3 mr-1"></i>
-                                ${log.operator}
+                            <div class="flex items-center space-x-4 flex-shrink-0">
+                                ${photosBtnHtml}
+                                <div class="flex items-center text-xs font-bold text-slate-400 dark:text-slate-500 whitespace-nowrap w-24 justify-end">
+                                    <i data-lucide="user" class="w-3.5 h-3.5 mr-1"></i>
+                                    ${log.operator}
+                                </div>
                             </div>
                         </div>
                     </td>
@@ -2026,6 +2077,61 @@
                 tbody.appendChild(tr);
             });
             lucide.createIcons();
+        }
+
+        function openPhotoViewModal(photosStr, title, subTitle) {
+            const modal = document.getElementById('photoViewModal');
+            const card = document.getElementById('photoViewModalCard');
+            const grid = document.getElementById('photoGrid');
+            const subTitleEl = document.getElementById('photoViewModalSubTitle');
+            
+            subTitleEl.textContent = subTitle || '';
+            grid.innerHTML = '';
+            
+            let photos = [];
+            try {
+                photos = JSON.parse(photosStr);
+            } catch(e) {
+                console.error("解析图片列表失败:", e);
+            }
+            
+            if (!photos || photos.length === 0) {
+                grid.innerHTML = '<p class="text-slate-400 dark:text-slate-500 text-sm col-span-2 text-center py-8 italic">暂无照片附件</p>';
+            } else {
+                photos.forEach(path => {
+                    const container = document.createElement('div');
+                    container.className = "group relative aspect-square rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-700/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer";
+                    container.onclick = () => window.open(path, '_blank');
+                    container.innerHTML = `
+                        <img src="${path}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="附件图片">
+                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <span class="text-white text-xs font-bold bg-black/60 px-3 py-1.5 rounded-full flex items-center">
+                                <i data-lucide="eye" class="w-3.5 h-3.5 mr-1"></i> 查看原图
+                            </span>
+                        </div>
+                    `;
+                    grid.appendChild(container);
+                });
+            }
+            
+            modal.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                modal.classList.remove('opacity-0');
+                card.classList.remove('scale-95');
+                card.classList.add('scale-100');
+            });
+            lucide.createIcons();
+        }
+
+        function closePhotoViewModal() {
+            const modal = document.getElementById('photoViewModal');
+            const card = document.getElementById('photoViewModalCard');
+            modal.classList.add('opacity-0');
+            card.classList.remove('scale-100');
+            card.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
         }
 
         // ==== 8. 检查计划(Templates) API 对接 ====
@@ -2416,6 +2522,38 @@
                 }
             };
             fileInput.click();
+        }
+
+        async function exportDevices() {
+            const btn = document.getElementById('btn-export');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> <span>导出中...</span>';
+            lucide.createIcons();
+            try {
+                const res = await fetch('/devices/export');
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.detail || '导出失败');
+                }
+                const blob = await res.blob();
+                const disposition = res.headers.get('Content-Disposition') || '';
+                const match = disposition.match(/filename=(.+)/);
+                const filename = match ? match[1].replace(/"/g, '') : '设备列表.xlsx';
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                console.error(err);
+                alert('❌ ' + err.message);
+            } finally {
+                btn.innerHTML = originalHtml;
+                lucide.createIcons();
+            }
         }
 
     </script>

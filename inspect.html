@@ -299,6 +299,7 @@
 
     <script>
         const API_BASE_URL = window.location.origin;
+        let uploadedPhotos = [];
         function initIcons() { if (typeof lucide !== 'undefined') lucide.createIcons(); }
         const elLoading = document.getElementById('loadingState');
         const elContent = document.getElementById('contentState');
@@ -427,13 +428,13 @@
             const tplId = parseInt(document.getElementById('selectedTemplate').value);
             if (!tplId) return alert("请选择检查标准");
             const checklist = Array.from(document.querySelectorAll('.inspection-check-item')).map(cb => ({ item_name: cb.value, is_normal: cb.checked }));
-            await doSubmit(`${API_BASE_URL}/inspections/`, { device_id: getDeviceIdFromUrl(), template_id: tplId, checklist }, 'btnSubmitInspection');
+            await doSubmit(`${API_BASE_URL}/inspections/`, { device_id: getDeviceIdFromUrl(), template_id: tplId, checklist, photos: uploadedPhotos }, 'btnSubmitInspection');
         }
         async function submitMaintenance() {
             const planId = parseInt(document.getElementById('selectedMPlan').value);
             if (!planId) return alert("请选择维护计划");
             const checklist = Array.from(document.querySelectorAll('.maintenance-check-item')).map(cb => ({ item_name: cb.value, is_normal: cb.checked }));
-            await doSubmit(`${API_BASE_URL}/maintenance/records/`, { device_id: getDeviceIdFromUrl(), plan_id: planId, checklist, operator: "现场作业员" }, 'btnSubmitMaintenance');
+            await doSubmit(`${API_BASE_URL}/maintenance/records/`, { device_id: getDeviceIdFromUrl(), plan_id: planId, checklist, operator: "现场作业员", photos: uploadedPhotos }, 'btnSubmitMaintenance');
         }
         async function doSubmit(url, payload, btnId) {
             const btn = document.getElementById(btnId); const original = btn.innerHTML; btn.disabled = true;
@@ -463,6 +464,9 @@
                 try {
                     const res = await fetch('/api/upload-photo', { method: 'POST', body: formData });
                     const data = await res.json();
+                    if (data.path) {
+                        uploadedPhotos.push(data.path);
+                    }
                     placeholder.innerHTML = `
                         <img src="${data.path}" class="w-full h-full object-cover" alt="现场照片">
                         <div class="absolute top-1 right-1 bg-emerald-500 text-white rounded-full w-5 h-5 flex items-center justify-center">
