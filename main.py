@@ -1114,6 +1114,51 @@ def export_devices_to_excel(db: Session = Depends(get_db)):
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": disposition}
     )
+
+@app.get("/logs/export", summary="批量导出系统日志为 Excel 文件")
+def export_logs_to_excel(db: Session = Depends(get_db)):
+    """
+    将系统中全部系统日志数据导出为 .xlsx 文件，
+    包含关联的设备名称、设备SN、事件类型、操作人、日志内容、产生时间等字段。
+    """
+    import pandas as pd
+    from io import BytesIO
+    from urllib.parse import quote
+    from fastapi.responses import StreamingResponse
+
+    logs = db.query(SystemLog).options(
+        joinedload(SystemLog.device)
+    ).order_by(SystemLog.created_at.desc()).all()
+
+    rows = []
+    for log in logs:
+        rows.append({
+            "日志ID": log.id,
+            "关联设备名称": log.device.name if log.device else "系统/未指定",
+            "关联设备SN": log.device.sn if log.device else "-",
+            "事件类型": log.event_type or "",
+            "操作人": log.operator or "",
+            "日志详情内容": log.content or "",
+            "产生时间": log.created_at.strftime("%Y-%m-%d %H:%M:%S") if log.created_at else ""
+        })
+
+    df = pd.DataFrame(rows)
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="系统全周期日志")
+    output.seek(0)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    cn_name = f"系统全周期日志_{timestamp}.xlsx"
+    ascii_name = f"system_logs_{timestamp}.xlsx"
+    encoded_name = quote(cn_name)
+    disposition = f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{encoded_name}"
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": disposition}
+    )
+
 @app.get("/devices/{device_id}", response_model=DeviceResponse, summary="获取指定设备明细")
 def read_device(device_id: str, db: Session = Depends(get_db)):
     device = db.query(Device).options(

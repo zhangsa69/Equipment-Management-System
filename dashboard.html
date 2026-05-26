@@ -753,6 +753,11 @@
                             <p class="text-xs text-slate-500 mt-1">记录设备从检查、报修到派单、完工的全生命周期操作流水</p>
                         </div>
                     </div>
+                    <button onclick="exportLogs()" id="btn-export-logs"
+                        class="flex items-center space-x-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg shadow-sm transition-colors">
+                        <i data-lucide="file-down" class="w-4 h-4"></i>
+                        <span class="font-medium whitespace-nowrap">导出日志</span>
+                    </button>
                 </div>
 
                 <div class="overflow-x-auto">
@@ -773,6 +778,15 @@
                             </tr>
                         </tbody>
                     </table>
+                </div>
+
+                <!-- 分页 -->
+                <div
+                    class="px-5 py-4 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between rounded-b-2xl">
+                    <span class="text-sm text-slate-500 mb-4 sm:mb-0" id="log-table-info">共 0 条数据</span>
+                    <div class="flex items-center space-x-1" id="log-pagination">
+                        <!-- 分页按钮动态生成 -->
+                    </div>
                 </div>
             </div>
 
@@ -1256,16 +1270,19 @@
         lucide.createIcons();
         // 全局分页状态
         const pageSize = 10;
+        const logPageSize = 15;
         let deviceCurrentPage = 1;
         let userCurrentPage = 1;
+        let logCurrentPage = 1;
         let maintenanceDataList = []; // 维护计划数据
+        let systemLogsDataList = [];  // 全局存储系统日志
 
         // 通用分页渲染函数
-        function renderPagination(total, containerId, onPageChange, currentPage) {
+        function renderPagination(total, containerId, onPageChange, currentPage, customPageSize = pageSize) {
             const container = document.getElementById(containerId);
             if (!container) return;
             container.innerHTML = '';
-            const totalPages = Math.ceil(total / pageSize);
+            const totalPages = Math.ceil(total / customPageSize);
             if (totalPages <= 1) return;
 
             const addBtn = (p, text, active = false, disabled = false) => {
@@ -1391,10 +1408,17 @@
                 return;
             }
 
+            // 按状态为“故障”的设备最优先排列
+            const sortedDevices = [...devices].sort((a, b) => {
+                const aFault = a.status === '故障' ? 1 : 0;
+                const bFault = b.status === '故障' ? 1 : 0;
+                return bFault - aFault;
+            });
+
             // 分页逻辑
             const start = (deviceCurrentPage - 1) * pageSize;
             const end = start + pageSize;
-            const pagedData = devices.slice(start, end);
+            const pagedData = sortedDevices.slice(start, end);
 
             // 若当前页无数据且非第一页，跳回第一页
             if (pagedData.length === 0 && total > 0) {
@@ -2011,8 +2035,8 @@
             try {
                 const res = await fetch('/logs/');
                 if (res.ok) {
-                    const logs = await res.json();
-                    renderSystemLogs(logs);
+                    systemLogsDataList = await res.json();
+                    renderSystemLogs(systemLogsDataList);
                 }
             } catch (err) {
                 console.error("加载系统日志失败:", err);
@@ -2023,12 +2047,35 @@
             const tbody = document.getElementById('logTableBody');
             tbody.innerHTML = '';
 
-            if (!logs || logs.length === 0) {
+            const total = logs.length;
+            const info = document.getElementById('log-table-info');
+            if (info) info.textContent = `共 ${total} 条数据`;
+
+            if (!logs || total === 0) {
                 tbody.innerHTML = `<tr><td class="p-8 text-center text-slate-400">暂无任何系统流水日志</td></tr>`;
+                renderPagination(0, 'log-pagination', null, 1, logPageSize);
                 return;
             }
 
-            logs.forEach(log => {
+            // 分页逻辑
+            const start = (logCurrentPage - 1) * logPageSize;
+            const end = start + logPageSize;
+            const pagedData = logs.slice(start, end);
+
+            // 若当前页无数据且非第一页，跳回第一页
+            if (pagedData.length === 0 && total > 0) {
+                logCurrentPage = 1;
+                renderSystemLogs(logs);
+                return;
+            }
+
+            renderPagination(total, 'log-pagination', (p) => {
+                logCurrentPage = p;
+                renderSystemLogs(logs);
+                window.scrollTo({ top: document.getElementById('logs-table').offsetTop - 20, behavior: 'smooth' });
+            }, logCurrentPage, logPageSize);
+
+            pagedData.forEach(log => {
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors border-b border-slate-100 dark:border-slate-700/60";
 
@@ -2539,6 +2586,38 @@
                 const disposition = res.headers.get('Content-Disposition') || '';
                 const match = disposition.match(/filename=(.+)/);
                 const filename = match ? match[1].replace(/"/g, '') : '设备列表.xlsx';
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                console.error(err);
+                alert('❌ ' + err.message);
+            } finally {
+                btn.innerHTML = originalHtml;
+                lucide.createIcons();
+            }
+        }
+
+        async function exportLogs() {
+            const btn = document.getElementById('btn-export-logs');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> <span>导出中...</span>';
+            lucide.createIcons();
+            try {
+                const res = await fetch('/logs/export');
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.detail || '导出失败');
+                }
+                const blob = await res.blob();
+                const disposition = res.headers.get('Content-Disposition') || '';
+                const match = disposition.match(/filename=(.+)/);
+                const filename = match ? match[1].replace(/"/g, '') : '系统全周期日志.xlsx';
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
